@@ -5,9 +5,8 @@ Updated: September 21st, 2011
 
 Overview
 
-Using the Melodic GUI in FSL is not a transparent process, given that you input some parameters, press Go, and don't really have a good idea of what is going on. Additionally, when you perform group melodic analysis, it automatically does single subject runs and moves right into the group in a serial fashion, which is incredibly slow. It does not give you the option to use intermediate data (single subject ICA directories), so if your group ICA run has an error, you are forced to start from scratch, and wait for all the intermediate data to be re-created. Additionally, if you were to use the melodic command line utility, this assumes already preprocessed data. At the end of the day, it's very piecewise, slow, and messy to do a multi-session temporal concatenation with Melodic.
+This package derives functional networks from resting bold data, filters, performs quality analysis, matches to a user specified template image, and produces AIM xml files for use with Annotated Image Markup. MRtools.py is a python module that can be used for basic image manipulation, matching, and filtering, and the matching (pyMatch), AIM Template generation (AIMTemp), Quality analysis (melodic_qa), and filtering (melodic_hp) can be run by the package, or standalone on command line.
 
-I have created a package for running melodic and then dual regression, starting with raw data, and ending with the running of the dual regression. To do this, I simply looked through FSL's C++ source code, and wrote out the commands in bash scripts, so the entire process is completely transparent, and most importantly, easy for the user to customize. The package includes 1) a master python submission script, 2) a single subject bash ICA script, 3) a group ICA bash script, 4) a motion parameters (QA) checking python script, and 5) a dual regression script (not written by me, just modified to work with my submission script!). This package is by no means anything official, however I believe in the sharing of knowledge and tools for research, so I have chosen to include the scripts here for learning and usage.
 
 ica+ Package Contents:
 
@@ -29,7 +28,19 @@ ica+ Add Ons:
 The following scripts are considered add-ons because they are not controlled by the submission script, but still created for use with the package. 
 melodic_ts takes dual regression output, extracts the top six voxels, and then goes back to the raw data to extract the complete timeseries per each max voxel per each subject. Output is in a text file that can be used however you like. A sample use is with… 
 ica_corr.m: Takes melodic_ts output, calculates the correlation matrix for the max voxels, and outputs a list of these correlations for usage with whatever your heart desires (machine learning algorithms, covariates, etc). 
-pyCorr: A separate package for matching group networks to individual networks, or any sort of template to input images using nibabel and numpy in python. Includes a main script for doing the analysis (pyCorr.py) and a separate script for printing HTML report results (pyCorrPrint.py)
+pyCorr: A separate package for matching group networks to individual networks, or any sort of template to input images using nibabel and numpy in python. Includes a main script for doing the analysis (pyCorr.py) and a separate script for printing HTML report results (pyCorrPrint.py). Please note that this functionality to match is now incorporated into the MRtools module, and run with pyMatch.py!
+
+
+Requirements
+
+python - with scitools, numpy, and nibabel modules to do matching, filtering, or AIM template generation
+fsl
+
+Details
+
+Using the Melodic GUI in FSL is not a transparent process, given that you input some parameters, press Go, and don't really have a good idea of what is going on. Additionally, when you perform group melodic analysis, it automatically does single subject runs and moves right into the group in a serial fashion, which is incredibly slow. It does not give you the option to use intermediate data (single subject ICA directories), so if your group ICA run has an error, you are forced to start from scratch, and wait for all the intermediate data to be re-created. Additionally, if you were to use the melodic command line utility, this assumes already preprocessed data. At the end of the day, it's very piecewise, slow, and messy to do a multi-session temporal concatenation with Melodic. 
+
+I have created a package for running melodic and then dual regression, starting with raw data, and ending with the running of the dual regression. The user then can match this output to an image of his/her choice and produce AIM files for web query. To do this, I simply looked through FSL's source code, and wrote out the commands in bash scripts, so the entire process is completely transparent, and most importantly, easy for the user to customize. The package includes 1) a master python submission script, 2) a single subject bash ICA script, 3) a group ICA bash script, 4) a motion parameters (QA) checking python script, and 5) a dual regression script (not written by me, just modified to work with my submission script!). This package is by no means anything official, however I believe in the sharing of knowledge and tools for research, so I have chosen to include the scripts here for learning and usage.
 
 
 ica+ Usage
