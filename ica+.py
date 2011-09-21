@@ -17,6 +17,8 @@ Main Options:
   --gica                 group ICA
   --qa                   run QA
   --dr                   dual regression
+  --match                find top DR result matches to a template image
+  --aim                  create AIM xmls for top matches
 
 ALWAYS REQUIRED:
   -o ..., --output=...   experiment folder where the following subdirectories will be created:
@@ -53,11 +55,30 @@ TO RUN DUAL REGRESSION:
      500 is the number of iterations to run
      output goes to /my/experiment/dr/dr_name
 
+TO FIND TOP MATCHES OF DUAL REGRESSION RESULTS TO A TEMPLATE IMAGE:
+   python ica+.py -o /my/experiment --match=dr_name --template=template.nii.gz
+     (must be done after dual regression is complete)
+     match should specify the dual regression run to use in the experiment folder. All dr_stage3_corrp* will 
+     be filtered and used, and output will go to /my/experiment/match as a text file of the 
+     name "dr_name-template_bestcomps.txt." This file can be specified as input to create AIM xml for AIM files
+
+TO CREATE AIM TEMPLATES FROM TOP MATCHES
+   python ica+.py -o /my/exp --aim=/path/template_bestcomps.txt --ics=/path/match/template_original-ic.txt --name=dr_name
+     (must be done after match is complete)
+     --aim specifies a single column text file produced by --match that lists full image paths to a template and dual 
+     regression images.  Should be in the format: /path/to/image.nii.gz:score.  
+     --name specifies the name of the dr_run, for naming the output files
+     --ics [OPTIONAL] specifies a single column text file produced by --match that lists corresponding "good" networks
+     Will output AIM xml files under /my/exp/aim/dr_name-template/ for creation of AIM files for web query of results.  
+
+     To use the AIMTemp.py script standalone to create an AIM template
+     for one image:  python AIMTemp.py -o /fullpath/here --input=myimage.nii.gz --name=outname
+
 """
 
 __author__ = "Vanessa Sochat (vsochat@stanford.edu)"
-__version__ = "$Revision: 1.0 $"
-__date__ = "$Date: 2011/07/18 $"
+__version__ = "$Revision: 2.1 $"
+__date__ = "$Date: 2011/09/13 $"
 __license__ = "Python"
 
 from xml.dom import minidom
@@ -83,7 +104,7 @@ class Melodic:
         self.timepoints = 0
 	self.outdir = None
 
-    def group(self,icadirs,gicaname,outdir,scriptinput):
+    def group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript):
         self.outdir = outdir
 	
 	# Create an output name based on date / time, if one not specified
@@ -128,7 +149,7 @@ class Melodic:
         gica_file.close()
 
         # Submit GICA script
-        scommand = "bsub -J " + gicaname + "_gica -M 8000000 -o " + gpout + "/log/gica.out -e " + gpout + "/log/gica.err -R \"rusage[mem=8192]\" -W 50:30 " + scriptinput + " " + gpout + " \"" + subinput + "\""
+        scommand = "bsub -J " + gicaname + "_gica -M 8000000 -o " + gpout + "/log/gica.out -e " + gpout + "/log/gica.err -R \"rusage[mem=8192]\" -W 50:30 " + scriptinput + " " + gpout + " " + pyexec + " " + filterscript + " \"" + subinput + "\""
         # R \"rusage[mem=6144]\"
         # print scommand
 	subprocess.Popen(['%s' % scommand], shell=True, executable = "/bin/bash")
@@ -344,7 +365,7 @@ class DualRegression:
 	    print "Output directory " + outdir + " already created."
 
 
-    def runDR(self,gicadir,drname,outdir,con,mat,iter,scriptinput):
+    def runDR(self,gicadir,drname,outdir,con,mat,iters,scriptinput):
          if os.path.exists(outdir):
              self.outdir = outdir
              self.createGPout(outdir + "/dr")
@@ -363,7 +384,7 @@ class DualRegression:
              print outdir + "does not exist.  Check path and rerun.  Exiting." 
              sys.exit()
          self.checkGICA(gicadir)
-         self.checkDesign(con,mat,iter)
+         self.checkDesign(con,mat,iters)
          self.submitDR(scriptinput)
 
     def checkGICA(self,gicadir):
@@ -373,7 +394,7 @@ class DualRegression:
             print "Cannot find" + self.outdir + "/gica/" + gicadir + "/groupmelodic.ica/melodic_IC.nii.gz.  Exiting."
             sys.exit()
 
-    def checkDesign(self,con,mat,iter):
+    def checkDesign(self,con,mat,iters):
         # Check for contrast file
         if os.path.isfile(con):
             self.con = os.path.abspath(con)
@@ -390,10 +411,10 @@ class DualRegression:
 
         # Input iterations
         try:
-            self.iter = int(iter)
-            print "Dual regression will be run with " + str(self.iter) + " iterations."
+            self.iters = int(iters)
+            print "Dual regression will be run with " + str(self.iters) + " iterations."
         except:
-            "Error setting iterations to " + iter + ". Exiting"
+            "Error setting iterations to " + iters + ". Exiting"
         
 
     def dtOut(self): 
@@ -413,9 +434,248 @@ class DualRegression:
         sublist = '"' + sublist + '"'
         gica_filelist.close()
 
+        # Print group gica directory to log, for later use with match
+        gica_log = open(self.fullout + "/gica_name.txt","w")
+        gica_log.write(self.gicadir)
+        gica_log.close()
+
         # Submit script for dual regression
-        subprocess.Popen(['bsub','-J',self.drname + "_dr",'-o',self.fullout + "/log/dr.out",'-e',self.fullout + '/log/dr.err','-W 99:30',scriptinput,self.gicadir + "/groupmelodic.ica/melodic_IC","1",self.mat,self.con,str(self.iter),self.fullout + "/result",self.gicadir])
+        subprocess.Popen(['bsub','-J',self.drname + "_dr",'-o',self.fullout + "/log/dr.out",'-e',self.fullout + '/log/dr.err','-W 99:30',scriptinput,self.gicadir + "/groupmelodic.ica/melodic_IC","1",self.mat,self.con,str(self.iters),self.fullout + "/result",self.gicadir])
         time.sleep(2)
+
+#----MATCH-------------------------------------------------------------------------------
+# do prep to submit pyMatch.py with user specified dual regression results and template image
+class Match:
+    def __init__(self,outdir,drname,template):
+      self.drname = None              # Dual Regression run name under /experiment/dr/
+      self.outdir = None              # Experiment output directory
+      self.fullout = None             # Full output path /experiment/match/drname
+      self.template = None            # template image file to match to
+      self.images = None              # text file created for pyMatch with list of dr_stage3_corrp image names (under gica/run1/filter)
+      self.drimfolder = None          # Dual regression image folder with stage3_corrp* images
+      self.tempname = None            # Name of template image
+      self.subs = None                # text file for pyMatch with directory name containing contender images, should be dual regression folder
+      self.checkMatch(drname)
+      self.setupDir(outdir,template)      
+      self.setupMatch()
+
+    def checkMatch(self,drrun):
+    # Make sure dr_run exists
+        if not os.path.exists(self.outdir + "/dr/" + drrun):
+            print "Cannot find dual regression run " + drrun + ". Exiting!"
+            sys.exit()         
+        else: 
+            self.drname = drrun
+            self.drimfolder = self.outdir + "/dr/" + self.drname + "/result"
+   
+    # Create output folder
+    def createDir(self,dirname):
+        if not os.path.exists(dirname):
+    	    print "Creating output directory " + dirname + "..."
+            os.makedirs(dirname)	    	
+	else:
+	    print "Output directory " + outdir + " already created."
+
+    
+    def setupDir(self,outdir,template):
+        # Check for output directories, create subdirectories 
+        if os.path.exists(outdir):
+            self.outdir = outdir
+            self.createDir(outdir + "/match")
+            if not os.path.exists(self.outdir + "/match/" + self.drname):
+                self.fullout = self.outdir + "/match/" + self.drname
+                self.createDir(self.fullout)
+                self.createDir(self.fullout + "/log")
+            else: 
+                print "Output directory " + self.outdir + "/match/" + self.drname + " already exists."
+                self.fullout = self.outdir + "/match/" + self.drname
+
+            # Check for template, copy to output folder if it exists
+            if os.path.isfile(template):
+                if not os.path.isfile(self.fullout + "/" + drname + "-" + os.path.basename(template)):
+                    self.tempname = os.path.basename(template)
+                    shutil.copy(template,self.fullout + "/" + drname + "-" + self.tempname )
+                    self.template = self.fullout + "/" + drname + "-" + self.tempname
+                else:
+                    print "Template already been used for this dr_run, please delete old results, or use a different template."
+                    sys.exit()
+            else:
+                print "Cannot find " + template + ". Make sure path is correct, and re-run."
+                sys.exit()
+        else:
+            print "Output directory " + self.outdir + " not found! Exiting."
+            sys.exit()
+
+    def setupMatch(self):
+        # Find file of "good" dual regression images from original gica directory
+        # We know the path of the dual regression run, and from these can load the original
+        # gica run that the dr was done with from file...
+        print "Finding group melodic directory that dual regression was run from..."
+        try:
+            gicanamefile = open(self.outdir + "/dr/" + self.drname + "/log/gica_name.txt","r")
+            gicadir = gicanamefile.readline().rstrip()
+            print "Group melodic directory is " + gicadir
+        except:
+            print "Cannot find gica_name.txt in " + self.outdir + "/dr/" + self.drname + "/log/.  Make sure this"
+            print "text file exists with the full path to the gica directory used for the dual regression, and re-run."
+            sys.exit()
+        
+        # DUAL REGRESSION IMAGES 
+        # Read in DR image names from gica_DR-hpfilter-good.txt file in gicadir...
+        print "Reading in dual regression images for networks that passed high pass filtering..."
+        drgood = open(gicadir + "/filter/gica_DR-hpfilter-good.txt","r")    
+        drgoodlist = []    
+        for line in drgood:
+            print "Adding " + line.rstrip() + " as a contender to be matched..."
+            drgoodlist.append(line.rstrip())
+
+        # Write these images and full path to file, for input to pyMatch.py
+        print "Writing input file " + self.fullout + "/" + self.tempname + "-images.txt for pyMatch.py..."
+        drfile = open(self.fullout + "/" + self.tempname + "-images.txt","w")      # Image input file for pyMatch.py
+        for drimg in drgoodlist:
+            drfile.write(drimg + "\n")
+        drfile.close()
+
+        # ICA IMAGES
+        # Read in ICA image names from gica_IC-hpfilter-good.txt file in gicadir...
+        print "Reading in gica IC images for later use to create AIM template..."
+        icgood = open(gicadir + "/filter/gica_IC-hpfilter-good.txt","r")    
+        icgoodlist = []    
+        for line in icgood:
+            print "Adding " + line.rstrip() + " to list of good networks..."
+            icgoodlist.append(gicadir + "/groupmelodic.ica/stats/" + line.rstrip())
+
+        # Write these images and full path to file, for input to AIMTemp.py
+        print "Writing input file " + self.fullout + "/" + self.tempname + "-original-ic.txt for AIMTemp.py..."
+        icfile = open(self.fullout + "/" + self.tempname + "-original-ic.txt","w")   # Input file for AIMTemp.py
+        for icimg in icgoodlist:
+            icfile.write(icimg + "\n")
+        icfile.close()
+
+        # set self.images to this full path
+        self.images = self.fullout + "/" + self.tempname + "-images.txt"
+
+        # Write dr_folder path to file for subs list input to pyMatch.py
+        subfile = open(self.fullout + "/" + self.tempname + "-subs.txt","w")      # Subs/Output folder(s) list for pyMatch.py
+        subfile.write(self.drimfolder + "\n")
+        subfile.close()
+        self.subs = self.fullout + "/" + self.tempname + "-subs.txt"
+
+    def runMatch(self,scriptinput,pyexec):
+        
+        # Submit script to run Match
+        subprocess.Popen(['bsub','-J',self.drname + "_match",'-o',self.fullout + "/log/" + self.tempname + ".out",'-e',self.fullout + "/log/" + self.tempname + ".err",'-W 99:30',pyexec,scriptinput,"--output=" + self.fullpath,"--subs=" + self.subs,"--template=" + self.template,"--images=" + self.images])
+        time.sleep(2)
+
+
+#----AIM-------------------------------------------------------------------------------
+# create AIMTemp files from a Match run, including original template, and top three IC
+# component network images (under groupmelodic.ica/stats/IC_* images) and dual regression
+# results (dr_stage3_corrp* images under dr/results)
+
+class AIM:
+    def __init__(self,outdir,drname):
+      self.drname = None              # Dual Regression run name under /experiment/dr/
+      self.expdir = None              # Experiment output directory
+      self.outdir = None              # aim/template output directory
+      self.fullout = None             # Full output path /experiment/aim/drname
+      self.template = None            # template image file to match to
+      self.tempname = None            # Name of template image
+      self.inputs = {}                # Dictionary of input image paths indexed by image name
+      self.scores = {}                # Dictionary of match scores, if we ever need them
+      self.setupDir(outdir,drname)      
+     
+    def setupDir(self,outdir,drname):
+        # Make sure experiment exists
+        if os.path.exists(outdir):
+            self.expdir = outdir 
+            self.createDir(outdir + "/aim")
+        else:
+            print "Cannot find " + outdir + ". Exiting!"
+            sys.exit()
+
+        # Make sure dr-run exists
+        if os.path.exists(outdir + "/dr/" + drname):
+            self.drname = drname
+            print "Found dual regression run " + outdir + "/dr/" + drname
+        else:
+            print "Cannot find dual regression run " + outdir + "/dr/" + drname + ". Exiting!"
+            sys.exit()
+
+    # Create output folders
+    def createDir(self,dirname):
+        if not os.path.exists(dirname):
+    	    print "Creating output directory " + dirname + "..."
+            os.makedirs(dirname)	    	
+	else:
+	    print "Output directory " + outdir + " already created."
+
+    # Check if image exists
+    def exists(self,imagetocheck,infile):
+        if os.path.exists(imagetocheck):
+            print "Found image " + imagetocheck
+            return True
+        else:
+            print "Cannot find image " + imagetocheck + " in file " + infile + ". Check path.  Exiting!"
+            sys.exit()
+
+    def DR(self,drinputfile):
+        # Read dr_input file - should be single column with full path to template, followed by full paths to each dr image
+        try:
+            drinfile = open(drinputfile,"r")
+
+            # First find the template image
+            firstline = drinfile.readline().rstrip()
+            template = firstline.split(':')[0]
+            if self.exists(template,drinputfile):
+                self.template = os.path.abspath(template)
+                self.tempname = os.path.basename(template).split('.')[0]
+                self.inputs[self.tempname + self.drname + '_TEMPLATE'] = self.template
+                # The template is a perfect match to itself, so give it a ridiculously high score
+                self.scores[self.tempname + self.drname + '_TEMPLATE'] = 99999
+                # Make output folder to correspond to dual regression name
+                createDir(self.expdir + "/" + self.drname)
+                createDir(self.expdir + "/" + self.drname + "/log")
+                self.fullout = self.expdir + "/" + self.drname
+                
+            # Now find the remaining dual regression images
+            for line in drinfile:
+                drimres = line.rstrip().split(':')[0]
+                if self.exists(drimres):
+                    # Add to list of input, indexed by image and dr_run name, if we find them
+                    self.inputs[self.drname + "-" + os.path.basename(drimres).split('.')[0]] = os.path.abspath(drimres)
+                    self.scores[self.drname + "-" + os.path.basename(drimres).split('.')[0]] = line.rstrip().split(':')[1]
+            drinfile.close()
+    
+        except:
+            print "Cannot read input file " + drinputfile + ". Exiting!"
+
+
+    def DRandIC(self,drinputfile,icinputfile):
+        # First read in dual regression results
+        self.DR(drinputfile)
+
+        # Now read in corresponding IC networks 
+        try:
+            icinfile = open(icinputfile,"r")
+            for line in icinfile:
+              icimres = line.rstrip()
+              if self.exists(icimres,icinputfile):
+              # Add to list of inputs, indexed by dr_run name and IC image name, if we find them
+              # An entire network image does not have a match score
+                  self.inputs[self.drname + "-" + os.path.basename(icimres).split('.')[0]] = os.path.abspath(icimres)
+        except:
+            print "Cannot read input file " + icinputfile + ". Exiting!"
+
+    def runAIM(self,scriptinput,pyexec):
+        print "Submitting individual AIM template jobs..."
+        for outname,fullpath in self.images.iteritems():
+
+            # Submit script to create AIM templates...
+            print "Submitting job for " + outname + "..."
+            subprocess.Popen(['bsub','-J',outname + "_aim",'-o',self.fullout + "/log/" + outname + ".out",'-e',self.fullout + "/log/" + outname + ".err",'-W 99:30',pyexec,scriptinput,"-o",self.fullpath,"--input=" + fullpath,"--name=" + outname])
+            time.sleep(2)
+            # Usage: python AIMTemp.py -o /fullpath/here --input=myimage.nii.gz --name=outname
 
 #-----------------------------------------------------------------------------------
 def usage():
@@ -432,7 +692,7 @@ def fslcheck():
 # Finds .sh scripts to run jobs and remembers full path
 def scriptcheck():
     scriptdict = {}
-    for scriptname in ("melodic_ss.sh","melodic_gp.sh","melodic_dr.sh","melodic_qa.py","run_Bandpass.sh","Bandpass"):
+    for scriptname in ("melodic_ss.sh","melodic_gp.sh","melodic_dr.sh","melodic_qa.py","run_Bandpass.sh","Bandpass","AIMTemp.py","MRtools.py","pyMatch.py","melodic_hp.py"):
         if os.path.isfile(scriptname):
 	    scriptdict[scriptname] = os.path.abspath(scriptname)
         else:
@@ -470,7 +730,7 @@ def varcheck(vartocheck):
 #----------------------------------------------
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "ho:", ["help","output=","qa=","ica=","gica=","dr=",'name=',"con=","mat=","iter="])
+        opts, args = getopt.getopt(argv, "ho:", ["help","output=","qa=","ica=","gica=","dr=",'name=',"con=","mat=","iter=","match="])
 
     except getopt.GetoptError:
         usage()
@@ -481,16 +741,17 @@ def main(argv):
     outdir = None
     scans = None
     runname = None
+    gicadir = None
+    matchdrname = None
 
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             usage()
-            sys.exit()    
+            sys.exit()   
+ 
         if opt in ("--ica") and not runtype:
             scans = arg
             runtype = "ica"
-        if opt in ("-o", "--output"):
-            outdir = arg
 	if opt in ("--gica") and not runtype:
             icadirs = arg
             runtype = "gica"
@@ -500,18 +761,32 @@ def main(argv):
         if opt in ("--dr") and not runtype:
 	    gicadir = arg
             runtype = "dr"
+        if opt in ("--match") and not runtype:
+	    matchdrname = arg
+            runtype = "match"
+        if opt in ("--aim") and not runtype:
+	    aim = arg
+            runtype = "aim" 
+
+        if opt in ("-o", "--output"):
+            outdir = arg        
         if opt in ("--name"):
             runname = arg
+        if opt in ("--template"):
+            aimtemp = arg
         if opt in ("--con"):
             con = arg
         if opt in ("--mat"):
             mat = arg
         if opt in ("--iter"):
-            iter = arg
+            iters = arg
+        if opt in ("--ics"):
+            ics = arg
 
     fslcheck()            	  # Check to make sure fsl is installed!
     scriptdict = scriptcheck()	  # look for required scripts
     outdir = setupout(outdir)     # setup output directory
+    pyexec = sys.executable       # save path to current python executable, to pass along
 
     # SINGLE SUBJECT ICA
     if runtype is "ica":
@@ -541,9 +816,10 @@ def main(argv):
              usage()
              sys.exit()
         melGP = Melodic()
-        melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"])
+        melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"],pyexec,scriptdict["melodic_hp.py"])
         print "Done submitting GICA job."
         print "Follow output at " + outdir + "/gica/"
+        print "HP Filtering will happen at end, good IC and DR image lists will be under gica/filter"
         
     # QUALITY ANALYSIS
     elif runtype is "qa":
@@ -556,14 +832,44 @@ def main(argv):
         
     # DUAL REGRESSION
     elif runtype is "dr":
-        try: varcheck({gicadir:"gica directory (--dr=group.gica)",outdir:"experiment output directory (-o)",con:"design contrasts (--con=design.con",mat:"design matrix (--mat=design.mat)",iter:"iterations (--iter=500)"})
+        try: varcheck({gicadir:"gica directory (--dr=group.gica)",outdir:"experiment output directory (-o)",con:"design contrasts (--con=design.con",mat:"design matrix (--mat=design.mat)",iters:"iterations (--iter=500)"})
         except:
             usage()
             sys.exit()
         drRun = DualRegression()
-        drRun.runDR(gicadir,runname,outdir,con,mat,iter,scriptdict["melodic_dr.sh"])
+        drRun.runDR(gicadir,runname,outdir,con,mat,iters,scriptdict["melodic_dr.sh"])
         print "Dual Regression job submit."
         print "Output will be in /dr/" + runname
+        
+    # MATCH
+    elif runtype is "match":
+        import shutil
+        import dircache
+        try: varcheck({matchdrname:"dual regression results folder to match (--match=dr_name)",outdir:"experiment output directory (-o)",aimtemp:"template image (--template=image.nii.gz"})
+        except:
+            usage()
+            sys.exit()
+        print "Preparing Match Object to perform matching..."
+        MatchRun = Match(outdir,matchdrname,aimtemp)
+        MatchRun.runMatch(scriptdict["pyMatch.py"],pyexec)
+        print "Match job submit."
+        print "Output will be in /match/" + runname
+        print "Top three matches (for excel import) in file " + aimtemp + "-beststats.txt"
+        print "File (for ica+ --aim= input) is " + aimtemp + "-bestcomps.txt"  
+
+    # AIM
+    elif runtype is "aim":
+        print "Preparing to run ica+AIM..."
+        try: varcheck({aim:"*-bestcomps.txt file input under match/drname/ (--aim=template_bestcomps.txt)",outdir:"experiment output directory (-o)",ics:"original filtered network components (--ics=/path/to/match/template-original-ics.txt)",runname:"dual regression run name (--name=dr_run"})
+        except:
+            usage()
+            sys.exit()
+        AIMRun = AIM(outdir,runname)             # Setup AIM instance
+        if not ics: AIMRun.DR(aim)       # If user didn't specify original IC networks to create AIM instances for 
+        else: AIMRun.DRandIC(aim,ics)    # If user specified IC networks
+        AIMRun.runAIM(scriptdict["AIMTemp.py"],pyexec)
+        print "Finished submitting AIM xml template jobs."
+        print "Look for output in " + outdir + "/aim/" + runname
 
     # USER FAIL
     else: 

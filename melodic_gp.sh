@@ -8,8 +8,10 @@ BGTHS=10	# Brain background threshold
 COMPS=30        # Number of components for GICA
 
 # VARIABLES SET AT RUN TIME
-OUTPUT=$1
-SUBJECTS=( $2 )
+OUTPUT=$1       
+PYEXEC=$2       # Python executable to use to run filtering, will be same used to run ica+.py
+FILTERSCRIPT=$2 # Path to melodic_hp.py, should be in same directory as MRTools.py
+SUBJECTS=( $3 ) # List of all subject ICA directories
 
 # make sure output directory was made by submission script.
 if [ ! -d "$OUTPUT" ]; then
@@ -149,3 +151,17 @@ melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTH
 
 # This is the standard melodic command - the above is customized
 # melodic -i .filelist -o groupmelodic.ica -v --nobet --bgthreshold=10 --tr=2.5 --report --guireport=../../report.html --bgimage=bg_image -d 0 --mmthresh=0.5 --Ostats -a concat
+
+# AUTOMATICALLY FILTER COMPONENTS
+# Produce a list of IC components and (corresponding potential DR future result images) that pass a highpass filter
+# This list will be used by pyMatch to match ONLY good components to a template of interest!
+echo "Performing highpass filtering of output networks..."
+
+mkdir -p $OUTPUT/filter
+
+echo "Command is bsub -J gica_filter -o $OUTPUT/log/filter.out -e $OUTPUT/log/filter.err $PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats "
+
+# Submit group filter script to produce files with lists of good ICA and (potential future) dual regression results
+bsub -J "gica_filter" -o $OUTPUT/log/filter.out -e $OUTPUT/log/filter.err $PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats
+
+echo "Results gica_IC-hpfilter-good.txt and gica_DR-hpfilter-good.txt will be in " $OUTPUT"/filter, for use with Match functionality of ica+ package."
