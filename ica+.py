@@ -42,7 +42,7 @@ TO RUN QUALITY ANALYSIS:
      output goes to /my/experiment/qa/
 
 TO RUN GROUP ICA:
-   python ica+.py -o /my/experiment -gica=ica_dirs.txt -n run_name
+   python ica+.py -o /my/experiment --gica=ica_dirs.txt --name=run_name
      ica_dirs.txt is a single column text file listing full paths to ica directories
      you can use the *_ica.txt output file (from ica) under /my/experiment/list
      output goes to /my/experiment/gica/run_name.gica
