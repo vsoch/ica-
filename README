@@ -26,6 +26,7 @@ The entire project is hosted at github-ica+
 ica+ Add Ons:
 
 The following scripts are considered add-ons because they are not controlled by the submission script, but still created for use with the package. 
+MRlog: uses fsl or MRtools (with nibabel) to print a log of all data below a certain top directory, of type nifti.  This is is useful for distinguishing images based on timepoints or dimensions.
 melodic_ts takes dual regression output, extracts the top six voxels, and then goes back to the raw data to extract the complete timeseries per each max voxel per each subject. Output is in a text file that can be used however you like. A sample use is with… 
 ica_corr.m: Takes melodic_ts output, calculates the correlation matrix for the max voxels, and outputs a list of these correlations for usage with whatever your heart desires (machine learning algorithms, covariates, etc). 
 pyCorr: A separate package for matching group networks to individual networks, or any sort of template to input images using nibabel and numpy in python. Includes a main script for doing the analysis (pyCorr.py) and a separate script for printing HTML report results (pyCorrPrint.py). Please note that this functionality to match is now incorporated into the MRtools module, and run with pyMatch.py!
