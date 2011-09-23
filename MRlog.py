@@ -15,7 +15,8 @@ USAGE:
 python MRLog.py --out=/path/to/out --dir=/path/to/Data
 
 OUTPUT: 
-Path Name Size nVol TR XDim YDim ZDim Orientation Xvox Yvox Zvox
+image,path,Ydim,file_type,timepoints,dims,Xpixdim,Zdim,Xdim,Ypixdim,descrip,units,Zpixdim, (fsl)
+image,path,dims,units,Xpixdim,ydim,Zpixdim,file_type,zdim,timepoints,xdim,Ypixdim, (nibabel)
 
 """
 
