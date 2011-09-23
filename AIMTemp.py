@@ -20,6 +20,9 @@ Main Options:
   -o, --out              output folder (created if doesn't exist)
   -n, --name             output name
 
+Optional:
+  --rdf                  full path to rdf file to map AALID to FMAID
+  --url                  url to map this path
 """
 
 __author__ = 'Nolan Nichols'
@@ -71,8 +74,8 @@ class AIMTemplate:
                         try:                                                # Add fMRI coordinate value only if it exists
                             MNIX,MNIY,MNIZ = self.AAL.rcptoMNI([x,y,z])     # Get the MNI coordinate for this point
                             fmriVal = self.FMRI.getValMNI([MNIX,MNIY,MNIZ]) # Get the value for this MNI coordinate from input data
-                            if fmriVal:
-                                # print "MNI Coordinates " + str(MNIX) + ", " + str(MNIY) + ", " + str(MNIZ) + " have value " + str(fmriVal)
+                            if fmriVal not in ('0.0'):
+                                print "MNI Coordinates " + str(MNIX) + ", " + str(MNIY) + ", " + str(MNIZ) + " have value " + str(fmriVal)
                                 xyzlabels.append((MNIX, MNIY, MNIZ, aalID, fmriVal))                                  
                         except:
                             # print "fmri data is undefined at " + str(MNIX) + ", " + str(MNIY) + ", " + str(MNIZ) + " and will not be added"
@@ -103,12 +106,14 @@ class AIMTemplate:
             # Each entry in aalDict looks like: aalDict['aalID'] = ('fmaName', 'aalName', 'FMAID'))
             #                                   aalDict['77'] = ('Left thalamus', 'Thalamus_LEFT', '258716')
 
+
+	    # Prepare FMA / ontology information
+            cagridId = '%s-%s-%s' % (x,y,z)
+
             try:
-		# Prepare FMA / ontology information
+                # We go to "except" if the aalID isn't a valid key, meaning it's not in the dictionary
                 fmaid = aalDict[str(aalID)][2] # mapping between aalID and fmaid
                 fmaLabel = aalDict[str(aalID)][0]
-                cagridId = '%s-%s-%s' % (x,y,z)
-                
                 ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, cagridId, recordindex)
                 AIM_ROOT.append(ImageAnnotation)
                 if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
@@ -169,7 +174,7 @@ class AIMTemplate:
         calculationDataCollection = etree.SubElement(CalculationResult, 'calculationDataCollection')
         CalculationData = etree.SubElement(calculationDataCollection, 'CalculationData')
         CalculationData.attrib['cagridId'] = cagridId
-        CalculationData.attrib['value'] = str(zScore[0]) # fMRI z-score goes for a single coordinate
+        CalculationData.attrib['value'] = str(zScore) # fMRI z-score goes for a single coordinate
         # create an AIM ImageAnnotation template - coordinateCollection sub-tree w/attributes
         coordinateCollection = etree.SubElement(CalculationData,'coordinateCollection')
         Coordinate = etree.SubElement(coordinateCollection, 'Coordinate')

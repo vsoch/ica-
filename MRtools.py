@@ -214,14 +214,15 @@ class Data:
 
     def getValMNI(self,MNIcoord):
         '''Image.getValMNI([MNIx,MNIy,MNIz]) returns data value from MNI coordinate input'''
-        
         # First convert from MNI to the images raw coordinate space
         MNIxyz = self.mnitoRCP(MNIcoord)
-        try: 
-            return self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]]
+        try:
+            return str(self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]])
         except:
-            return 0 
-
+            return 0
+        #else:
+        #    return self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]].tolist()[0]
+        
     def getValRCP(self,RCPxyz):
         '''Image.getValRCP([RCPx,RCPy,RCPz]) returns data value from RCP coordinate input'''
         try: 
