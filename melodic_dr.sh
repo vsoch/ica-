@@ -99,6 +99,8 @@ for i in ${INPUTS[@]} ; do
         $FSLDIR/bin/fslsplit $OUTPUT/dr_stage2_$s $OUTPUT/dr_stage2_${s}_ic" >> ${LOGDIR}/drC
   j=`echo "$j 1 + p" | dc -`
 done
+
+chmod u+x ${LOGDIR}/drC
 ID_drC=`$FSLDIR/bin/fsl_sub -j $ID_drB -T 30 -N drC -l $LOGDIR -t ${LOGDIR}/drC`
 
 echo "sorting maps and running randomise"
@@ -120,6 +122,7 @@ while [ $j -lt $Nics ] ; do
         $FSLDIR/bin/imrm \`\$FSLDIR/bin/imglob $OUTPUT/dr_stage2_subject*_ic${jj}.*\` ; $RAND" >> ${LOGDIR}/drD
   j=`echo "$j 1 + p" | dc -`
 done
+chmod u+x ${LOGDIR}/drD
 ID_drD=`$FSLDIR/bin/fsl_sub -j $ID_drC -T 60 -N drD -l $LOGDIR -t ${LOGDIR}/drD`
 
 
