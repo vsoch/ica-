@@ -92,9 +92,9 @@ def printRes(comps,output,outname):
     for threshnum,img in sorted(comps.iteritems()):
         goodcompfile.write(img + "\n")
         # The dual regression result count starts at 0, and IC images start at 1, so we subtract one from thresh image to get dr result
-        if int(len(threshnum)-1) is 1:
+        if len(str(int(threshnum)-1)) is 1:
             gooddrfile.write('dr_stage3_ic000' + str(int(threshnum)-1) + '_tfce_corrp_tstat1.nii.gz\n')     
-        elif int(len(threshnum)-1) is 2:
+        elif len(str(int(threshnum)-1)) is 2:
             gooddrfile.write('dr_stage3_ic00' + str(int(threshnum)-1) + '_tfce_corrp_tstat1.nii.gz\n')
     goodcompfile.close()
     gooddrfile.close()

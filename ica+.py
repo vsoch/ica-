@@ -440,9 +440,10 @@ class DualRegression:
         gica_log.close()
 
         # Submit script for dual regression
-        subprocess.Popen(['bsub','-J',self.drname + "_dr",'-o',self.fullout + "/log/dr.out",'-e',self.fullout + '/log/dr.err','-W 99:30',scriptinput,self.gicadir + "/groupmelodic.ica/melodic_IC","1",self.mat,self.con,str(self.iters),self.fullout + "/result",self.gicadir])
+        drcommand = "bsub -J " + self.drname + "_dr -o " + self.fullout + "/log/dr.out -e " + self.fullout + "/log/dr.err -R \"rusage[mem=8192]\" -W 99:30 " + scriptinput + " " + self.gicadir + "/groupmelodic.ica/melodic_IC 1 " + self.mat + " " + self.con + " " + str(self.iter) + " " + self.fullout + "/result " + self.gicadir
+        subprocess.Popen(['%s' % drcommand], shell=True, executable = "/bin/bash")
         time.sleep(2)
-
+        
 #----MATCH-------------------------------------------------------------------------------
 # do prep to submit pyMatch.py with user specified dual regression results and template image
 class Match:
