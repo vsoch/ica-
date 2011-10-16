@@ -39,11 +39,12 @@ import os
 import getopt
 import scitools.numpytools as scinu
 import MRtools
+import datetime
 
 #----AIM-TEMPLATE-------------------------------------------------------------------------------
 class AIMTemplate:
     def __init__(self,infile):
-        self.infile = None                                          
+        self.infile = infile                                          
         self.FMRI = MRtools.Data(infile)              # Read the input file into a MRTools Data object, for easy query 
         self.AAL = MRtools.Data('MR/aal2mni152.nii.gz')  # Read the MNI152 template with labels into MRTrans object
                                                 # single analyze volume in MNI152 space with integers 1-116 for anat labels
@@ -74,8 +75,8 @@ class AIMTemplate:
                         try:                                                # Add fMRI coordinate value only if it exists
                             MNIX,MNIY,MNIZ = self.AAL.rcptoMNI([x,y,z])     # Get the MNI coordinate for this point
                             fmriVal = self.FMRI.getValMNI([MNIX,MNIY,MNIZ]) # Get the value for this MNI coordinate from input data
-                            if fmriVal not in ('0.0'):
-                                print "MNI Coordinates " + str(MNIX) + ", " + str(MNIY) + ", " + str(MNIZ) + " have value " + str(fmriVal)
+                            if abs(fmriVal) > float(0.000000000001):
+                                # print "MNI Coordinates " + str(MNIX) + ", " + str(MNIY) + ", " + str(MNIZ) + " have value " + str(fmriVal)
                                 xyzlabels.append((MNIX, MNIY, MNIZ, aalID, fmriVal))                                  
                         except:
                             # print "fmri data is undefined at " + str(MNIX) + ", " + str(MNIY) + ", " + str(MNIZ) + " and will not be added"
@@ -84,44 +85,48 @@ class AIMTemplate:
         return xyzlabels
 
     # Iterate through voxelsByLabel using the lookup indices as input to configure AIM instance
-    def aimGen(self,aalDict):
+    def aimGen(self,aalDict,aimFile,outname):
         print "Configuring AIM Instance..."
-        AIM_ROOT = etree.Element('AIM-ROOT') # create a root AIM element for ImageAnnotations returned by aimInstance
         undefinedAAL = []                    # keep a list of aalIDs undefined and defined in rdf...
         definedAAL = []
         recordcount = 0                      # Keep a count of the number of voxels in the image to label each one
         recordsize = len(self.xyzlabels)
+
+        # Grab date and time of file creation, for AIM
+        timey = os.path.getmtime(self.infile)
+        timey = datetime.datetime.fromtimestamp(timey)
+        self.time = timey.strftime("%Y-%m-%dT%H:%M:%S")
+
         while self.xyzlabels:
 
             # Each entry in xyzlabels looks like: ([MNIX, MNIY, MNIZ, aalID, fmriVal])
+            # AIM_ROOT = etree.ElementTree('AIM-ROOT') # create a root AIM element for ImageAnnotations returned by aimInstance
             recordcount = recordcount + 1
             recordindex = str(recordcount) + "/" + str(recordsize)
             record = self.xyzlabels.pop()
             x = record[0]          # MNIX
             y = record[1]          # MNIY
             z = record[2]          # MNIZ
-            aalID = record[3] # aalDict key is a string aalID
+            aalID = record[3]      # aalDict key is a string aalID
             Zscore = record[4]
 
             # Each entry in aalDict looks like: aalDict['aalID'] = ('fmaName', 'aalName', 'FMAID'))
             #                                   aalDict['77'] = ('Left thalamus', 'Thalamus_LEFT', '258716')
 
 
-	    # Prepare FMA / ontology information
-            cagridId = '%s-%s-%s' % (x,y,z)
-
             try:
                 # We go to "except" if the aalID isn't a valid key, meaning it's not in the dictionary
                 fmaid = aalDict[str(aalID)][2] # mapping between aalID and fmaid
                 fmaLabel = aalDict[str(aalID)][0]
-                ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, cagridId, recordindex)
-                AIM_ROOT.append(ImageAnnotation)
+                ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, recordindex)
+                #AIM_ROOT = etree.ElementTree(ImageAnnotation)
+                aimTree = etree.ElementTree(ImageAnnotation) # create an element tree from AIM_ROOT
+                aimTree.write(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml")  # write out the aim files
                 if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
             except:
                 if str(aalID) not in undefinedAAL: undefinedAAL.append(str(aalID))
                 continue
 
-        self.aimTree = etree.ElementTree(AIM_ROOT) # create an element tree from AIM_ROOT returned from aimInstance
         print "AIM Instance configuration complete."
         
         # Report to the user the aalIDs that were defined, and not defined
@@ -132,31 +137,32 @@ class AIMTemplate:
         if undefinedAAL:
             print "AALIDs with activation, in atlas image, but not in the dictionary, NOT added to AIM:"
             print undefinedAAL    
-        return self.aimTree
 
     # return an AIM instance based on the required coordinates, labels, and statistics
-    def aimInstance(self,x, y, z, fmaid, fmaLabel, zScore, cagridId, record):
+    def aimInstance(self,x, y, z, fmaid, fmaLabel, zScore, record):
+
         ''' '''
         # Global variables for AIM template
         XSI_NS = 'http://www.w3.org/2001/XMLSchema-instance'
         XSI_TYPE = '{%s}type' % XSI_NS
+
         # create an AIM ImageAnnotation template, ImageAnnotation sub-tree w/attributes
         ImageAnnotation = etree.Element('ImageAnnotation')
-        ImageAnnotation.attrib['aimVersion'] = '3.0'
-        ImageAnnotation.attrib['cagridId'] = cagridId
-        ImageAnnotation.attrib['codeMeaning'] = 'MRI 3D Image'
-        ImageAnnotation.attrib['codeValue'] = 'birnlex_2033'
-        ImageAnnotation.attrib['codingSchemeDesignator'] = 'NeuroLEX'
-        ImageAnnotation.attrib['dateTime'] = ''
-        ImageAnnotation.attrib['name'] = record
-        ImageAnnotation.attrib['uniqueIdentifier'] = ''
         # configure namespaces
         schemaLocation = '{%s}schemaLocation' % XSI_NS
         ImageAnnotation.attrib[schemaLocation] = 'gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM AIM_v3_rv11_XML.xsd'
+        ImageAnnotation.attrib['aimVersion'] = 'AIM.3.0'
+        ImageAnnotation.attrib['cagridId'] = '0'
+        ImageAnnotation.attrib['codeMeaning'] = 'MRI 3D Image'
+        ImageAnnotation.attrib['codeValue'] = 'birnlex_2033'
+        ImageAnnotation.attrib['codingSchemeDesignator'] = 'NeuroLEX'
+        ImageAnnotation.attrib['dateTime'] = self.time
+        ImageAnnotation.attrib['name'] = record
+        ImageAnnotation.attrib['uniqueIdentifier'] = ''
         # create an AIM ImageAnnotation template - calculationCollection sub-tree w/attributes
         calculationCollection = etree.SubElement(ImageAnnotation, 'calculationCollection')
         Calculation = etree.SubElement(calculationCollection, 'Calculation')
-        Calculation.attrib['cagridId'] = cagridId
+        Calculation.attrib['cagridId'] = '0'
         Calculation.attrib['codeMeaning'] = 'Z Score'
         Calculation.attrib['codeValue'] = 'ZSCORE'
         Calculation.attrib['codingSchemeDesignator'] = 'FMRI'
@@ -167,31 +173,31 @@ class AIMTemplate:
         # create an AIM ImageAnnotation template - calculationResultCollection sub-tree w/attributes
         calculationResultCollection = etree.SubElement(Calculation, 'calculationResultCollection')
         CalculationResult = etree.SubElement(calculationResultCollection, 'CalculationResult')
-        CalculationResult.attrib['cagridId'] = cagridId
+        CalculationResult.attrib['cagridId'] = '0'
         CalculationResult.attrib['numberOfDimensions'] = '1'
         CalculationResult.attrib['type'] = 'Scalar'
         CalculationResult.attrib['unitOfMeasure'] = 'Zscore'
         calculationDataCollection = etree.SubElement(CalculationResult, 'calculationDataCollection')
         CalculationData = etree.SubElement(calculationDataCollection, 'CalculationData')
-        CalculationData.attrib['cagridId'] = cagridId
+        CalculationData.attrib['cagridId'] = '0'
         CalculationData.attrib['value'] = str(zScore) # fMRI z-score goes for a single coordinate
         # create an AIM ImageAnnotation template - coordinateCollection sub-tree w/attributes
         coordinateCollection = etree.SubElement(CalculationData,'coordinateCollection')
         Coordinate = etree.SubElement(coordinateCollection, 'Coordinate')
-        Coordinate.attrib['cagridId'] = cagridId
+        Coordinate.attrib['cagridId'] = '0'
         Coordinate.attrib['dimensionIndex'] = '0'
         Coordinate.attrib['position'] = '0'
         # create an AIM ImageAnnotation template - dimensionCollection sub-tree w/attributes
         dimensionCollection = etree.SubElement(CalculationResult,'dimensionCollection')
         Dimension = etree.SubElement(dimensionCollection, 'Dimension')
-        Dimension.attrib['cagridId'] = cagridId
+        Dimension.attrib['cagridId'] = '0'
         Dimension.attrib['index'] = '0'
         Dimension.attrib['label'] = 'Value'
         Dimension.attrib['size'] = '1'
         # create an AIM ImageAnnotation template - user sub-tree w/attributes
         user = etree.SubElement(ImageAnnotation, 'user')
         User = etree.SubElement(user, 'User')
-        User.attrib['cagridId'] = cagridId
+        User.attrib['cagridId'] = '0'
         User.attrib['loginName'] = ''
         User.attrib['name'] = ''
         User.attrib['numberWithinRoleOfClinicalTrial'] = ''
@@ -199,7 +205,7 @@ class AIMTemplate:
         # create an AIM ImageAnnotation template - equipment sub-tree w/attributes
         equipment = etree.SubElement(ImageAnnotation, 'equipment')
         Equipment = etree.SubElement(equipment, 'Equipment')
-        Equipment.attrib['cagridId'] = cagridId
+        Equipment.attrib['cagridId'] = '0'
         Equipment.attrib['manufacturerModelName'] = 'N/A'
         Equipment.attrib['manufacturerName'] = 'University'
         Equipment.attrib['softwareVersion'] = '3.0.0.0'
@@ -207,49 +213,49 @@ class AIMTemplate:
         anatomicEntityCollection = etree.SubElement(ImageAnnotation, 'anatomicEntityCollection')
         AnatomicEntity = etree.SubElement(anatomicEntityCollection, 'AnatomicEntity')
         AnatomicEntity.attrib['annotatorConfidence'] = '1'
-        AnatomicEntity.attrib['cagridId'] = cagridId
+        AnatomicEntity.attrib['cagridId'] = '0'
         AnatomicEntity.attrib['codeMeaning'] = fmaLabel # this info exists outside of atlas
         AnatomicEntity.attrib['codeValue'] = fmaid # changed from RID
         AnatomicEntity.attrib['codingSchemeDesignator'] = 'FMA' 
-        AnatomicEntity.attrib['isPresent'] = 'True'
+        AnatomicEntity.attrib['isPresent'] = 'true'
         AnatomicEntity.attrib['label'] = 'Pixel in %s' % fmaLabel #should be 'Pixel in '+ %s codeMeaning
         # create an AIM ImageAnnotation template - imageReferenceCollection sub-tree w/attributes
         imageReferenceCollection = etree.SubElement(ImageAnnotation, 'imageReferenceCollection')
         ImageReference = etree.SubElement(imageReferenceCollection,'ImageReference')
-        ImageReference.attrib['cagridId'] = cagridId
+        ImageReference.attrib['cagridId'] = '0'
         ImageReference.attrib[XSI_TYPE] = 'DICOMImageReference'
         # create an AIM ImageAnnotation template - imageStudy sub-tree w/attributes
         imageStudy = etree.SubElement(ImageReference, 'imageStudy')
         ImageStudy = etree.SubElement(imageStudy, 'ImageStudy')
-        ImageStudy.attrib['cagridId'] = cagridId
+        ImageStudy.attrib['cagridId'] = '0'
         ImageStudy.attrib['instanceUID'] = ''
-        ImageStudy.attrib['startDate'] = ''
-        ImageStudy.attrib['startTime'] = ''
+        ImageStudy.attrib['startDate'] = self.time
+        ImageStudy.attrib['startTime'] = self.time
         # create an AIM ImageAnnotation template - imageSeries sub-tree w/attributes
         imageSeries = etree.SubElement(ImageStudy,'imageSeries')
         ImageSeries = etree.SubElement(imageSeries, 'ImageSeries')
-        ImageSeries.attrib['cagridId'] = cagridId
+        ImageSeries.attrib['cagridId'] = '0'
         ImageSeries.attrib['instanceUID'] = ''
         # create an AIM ImageAnnotation template - imageCollection sub-tree w/attributes
         imageCollection = etree.SubElement(ImageSeries, 'imageCollection')
         Image = etree.SubElement(imageCollection, 'Image')
-        Image.attrib['cagridId'] = cagridId
+        Image.attrib['cagridId'] = '0'
         Image.attrib['sopClassUID'] = ''
-        Image.attrib['sopInstanceUID'] = ''
+        Image.attrib['sopInstanceUID'] = os.path.basename(self.infile).split('.')[0]
         # create an AIM ImageAnnotation template - geometricShapeCollection sub-tree w/attributes
         geometricShapeCollection = etree.SubElement(ImageAnnotation, 'geometricShapeCollection')
         GeometricShape = etree.SubElement(geometricShapeCollection, 'GeometricShape')
-        GeometricShape.attrib['cagridId'] = cagridId
+        GeometricShape.attrib['cagridId'] = '0'
         GeometricShape.attrib['includeFlag'] = 'true'
         GeometricShape.attrib['shapeIdentifier'] = '0'
         GeometricShape.attrib[XSI_TYPE] = 'Point'
         # create an AIM ImageAnnotation template - spatialCoordinateCollection sub-tree w/attributes
         spatialCoordinateCollection = etree.SubElement(GeometricShape, 'spatialCoordinateCollection')
         SpatialCoordinate = etree.SubElement(spatialCoordinateCollection, 'SpatialCoordinate')
-        SpatialCoordinate.attrib['cagridId'] = cagridId
+        SpatialCoordinate.attrib['cagridId'] = '0'
         SpatialCoordinate.attrib['coordinateIndex'] = '0'
-        SpatialCoordinate.attrib['imageReferenceUID'] = ''
-        SpatialCoordinate.attrib['referencedFrameNumber'] = '1'
+        #SpatialCoordinate.attrib['imageReferenceUID'] = ''  # does not belong in SpatCoord
+        SpatialCoordinate.attrib['frameOfReferenceUID'] = '1'
         SpatialCoordinate.attrib['x'] = x.__str__()
         SpatialCoordinate.attrib['y'] = y.__str__()
         SpatialCoordinate.attrib['z'] = z.__str__()
@@ -257,7 +263,7 @@ class AIMTemplate:
         # create an AIM ImageAnnotation template - person sub-tree w/attributes
         person = etree.SubElement(ImageAnnotation,'person')
         Person = etree.SubElement(person, 'Person')
-        Person.attrib['cagridId'] = cagridId
+        Person.attrib['cagridId'] = '0'
         Person.attrib['id'] = 'NIF'
         Person.attrib['name'] = ''
         return ImageAnnotation
@@ -385,7 +391,7 @@ def checkdir(userdir):
 #-----------------------------------------------------------------------------------
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "hi:o:nru", ["help","input=","out=","name=","rdf","url"])
+        opts, args = getopt.getopt(argv, "hi:o:n:ru", ["help","input=","out=","name=","rdf","url"])
 
     except getopt.GetoptError:
         usage()
@@ -417,10 +423,6 @@ def main(argv):
       
     aimFile = checkdir(outfol)     # check output directory
 
-    # If no outname provided, use file name
-    if not outname:
-        outname,ext = os.path.splitext(infile)
-
     # Create rdf graph object that maps AAL IDs and FMAIDs
     FMA = fmaGraph()                              
     if rdf: FMA.fmaRDF(rdf)       
@@ -437,11 +439,8 @@ def main(argv):
     aalDict = FMA.aalDict    
     
     # Generate AIM Template with all aalIDs from atlas found with activation in input image
-    aimTree = AIM.aimGen(aalDict)
-
-    # Write to file
-    aimTree.write('%s/AIM-%s.xml' % (aimFile, str(outname))) # write out the aim files
-    
+    AIM.aimGen(aalDict,aimFile,outname)
+ 
 
 if __name__ == "__main__":
     main(sys.argv[1:])

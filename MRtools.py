@@ -217,7 +217,7 @@ class Data:
         # First convert from MNI to the images raw coordinate space
         MNIxyz = self.mnitoRCP(MNIcoord)
         try:
-            return str(self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]])
+            return self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]].tolist()[0]
         except:
             return 0
         #else:
