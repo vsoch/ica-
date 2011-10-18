@@ -131,12 +131,7 @@ class AIMTemplate:
             aimFileTop.write('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n')
             for line in xmllines: aimFileTop.write(line + "\n")
             aimFileTop.close()
-
-                # aimFileTop.write('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n')
-                # aimFileTop.close()
-                # aimTree = etree.XML('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>')
-                # aimTree = etree.ElementTree(aimTree)
-                
+        
             if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
             #except:
             if str(aalID) not in undefinedAAL: undefinedAAL.append(str(aalID))
@@ -178,8 +173,6 @@ class AIMTemplate:
         ImageAnnotation.attrib['codeValue'] = 'birnlex_2033'
         ImageAnnotation.attrib['codingSchemeDesignator'] = 'NeuroLEX'
         ImageAnnotation.attrib[schemaLocation] = 'gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM AIM_v3_rv11_XML.xsd'
-        # ImageAnnotation.attrib[schemaLocation] = 'http://www.w3.org/2001/XMLSchema-instance' 
-        # ImageAnnotation.attrib['schemaLocation'] ='gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM AIM_v3_rv11_XML.xsd'
         # create an AIM ImageAnnotation template - calculationCollection sub-tree w/attributes
         calculationCollection = etree.SubElement(ImageAnnotation, 'calculationCollection')
         Calculation = etree.SubElement(calculationCollection, 'Calculation')
