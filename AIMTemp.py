@@ -114,28 +114,27 @@ class AIMTemplate:
             #                                   aalDict['77'] = ('Left thalamus', 'Thalamus_LEFT', '258716')
 
 
-            #try:
+            try:
                 # We go to "except" if the aalID isn't a valid key, meaning it's not in the dictionary
-            fmaid = aalDict[str(aalID)][2] # mapping between aalID and fmaid
-            fmaLabel = aalDict[str(aalID)][0]
-            ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, recordindex)
-            aimTree = etree.ElementTree(ImageAnnotation)
-            aimTree.write(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml")  # write out the aim files
+                fmaid = aalDict[str(aalID)][2] # mapping between aalID and fmaid
+                fmaLabel = aalDict[str(aalID)][0]
+                ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, recordindex)
+                aimTree = etree.ElementTree(ImageAnnotation)
+                aimTree.write(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml")  # write out the aim files
                 
                 # Read in the file to rewrite it with the xml header (not sure how to do with etree)
-            aimFileTop = open(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml",'r')
-            xmllines = aimFileTop.readlines()
-            aimFileTop.close()
+                aimFileTop = open(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml",'r')
+                xmllines = aimFileTop.readlines()
+                aimFileTop.close()
 
-            aimFileTop = open(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml",'w')
-            aimFileTop.write('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n')
-            for line in xmllines: aimFileTop.write(line + "\n")
-            aimFileTop.close()
+                aimFileTop = open(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml",'w')
+                aimFileTop.write('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n')
+                for line in xmllines: aimFileTop.write(line + "\n")
+                aimFileTop.close()
         
-            if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
-            #except:
-            if str(aalID) not in undefinedAAL: undefinedAAL.append(str(aalID))
-              #  continue
+                if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
+            except:
+                if str(aalID) not in undefinedAAL: undefinedAAL.append(str(aalID)); continue
 
         #self.aimTree = etree.ElementTree(AIM_ROOT) # create an element tree from AIM_ROOT returned from aimInstance
         print "AIM Instance configuration complete."
