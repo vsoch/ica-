@@ -114,19 +114,35 @@ class AIMTemplate:
             #                                   aalDict['77'] = ('Left thalamus', 'Thalamus_LEFT', '258716')
 
 
-            try:
+            #try:
                 # We go to "except" if the aalID isn't a valid key, meaning it's not in the dictionary
-                fmaid = aalDict[str(aalID)][2] # mapping between aalID and fmaid
-                fmaLabel = aalDict[str(aalID)][0]
-                ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, recordindex)
-                #AIM_ROOT = etree.ElementTree(ImageAnnotation)
-                aimTree = etree.ElementTree(ImageAnnotation) # create an element tree from AIM_ROOT
-                aimTree.write(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml")  # write out the aim files
-                if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
-            except:
-                if str(aalID) not in undefinedAAL: undefinedAAL.append(str(aalID))
-                continue
+            fmaid = aalDict[str(aalID)][2] # mapping between aalID and fmaid
+            fmaLabel = aalDict[str(aalID)][0]
+            ImageAnnotation = self.aimInstance(x, y, z, fmaid, fmaLabel, Zscore, recordindex)
+            aimTree = etree.ElementTree(ImageAnnotation)
+            aimTree.write(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml")  # write out the aim files
+                
+                # Read in the file to rewrite it with the xml header (not sure how to do with etree)
+            aimFileTop = open(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml",'r')
+            xmllines = aimFileTop.readlines()
+            aimFileTop.close()
 
+            aimFileTop = open(str(aimFile) + "/AIM-" + str(outname) + "_" + str(recordcount) + ".xml",'w')
+            aimFileTop.write('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n')
+            for line in xmllines: aimFileTop.write(line + "\n")
+            aimFileTop.close()
+
+                # aimFileTop.write('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n')
+                # aimFileTop.close()
+                # aimTree = etree.XML('<?xml version="1.0" encoding="UTF-8" standalone="no" ?>')
+                # aimTree = etree.ElementTree(aimTree)
+                
+            if str(aalID) not in definedAAL: definedAAL.append(str(aalID))
+            #except:
+            if str(aalID) not in undefinedAAL: undefinedAAL.append(str(aalID))
+              #  continue
+
+        #self.aimTree = etree.ElementTree(AIM_ROOT) # create an element tree from AIM_ROOT returned from aimInstance
         print "AIM Instance configuration complete."
         
         # Report to the user the aalIDs that were defined, and not defined
@@ -149,16 +165,21 @@ class AIMTemplate:
         # create an AIM ImageAnnotation template, ImageAnnotation sub-tree w/attributes
         ImageAnnotation = etree.Element('ImageAnnotation')
         # configure namespaces
+        
         schemaLocation = '{%s}schemaLocation' % XSI_NS
-        ImageAnnotation.attrib[schemaLocation] = 'gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM AIM_v3_rv11_XML.xsd'
+        # print "Schema location is " + schemaLocation 
+        ImageAnnotation.attrib['xmlns'] = 'gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM'       
         ImageAnnotation.attrib['aimVersion'] = 'AIM.3.0'
+        ImageAnnotation.attrib['dateTime'] = self.time
         ImageAnnotation.attrib['cagridId'] = '0'
+        ImageAnnotation.attrib['name'] = record
+        ImageAnnotation.attrib['uniqueIdentifier'] = ''        
         ImageAnnotation.attrib['codeMeaning'] = 'MRI 3D Image'
         ImageAnnotation.attrib['codeValue'] = 'birnlex_2033'
         ImageAnnotation.attrib['codingSchemeDesignator'] = 'NeuroLEX'
-        ImageAnnotation.attrib['dateTime'] = self.time
-        ImageAnnotation.attrib['name'] = record
-        ImageAnnotation.attrib['uniqueIdentifier'] = ''
+        ImageAnnotation.attrib[schemaLocation] = 'gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM AIM_v3_rv11_XML.xsd'
+        # ImageAnnotation.attrib[schemaLocation] = 'http://www.w3.org/2001/XMLSchema-instance' 
+        # ImageAnnotation.attrib['schemaLocation'] ='gme://caCORE.caCORE/3.2/edu.northwestern.radiology.AIM AIM_v3_rv11_XML.xsd'
         # create an AIM ImageAnnotation template - calculationCollection sub-tree w/attributes
         calculationCollection = etree.SubElement(ImageAnnotation, 'calculationCollection')
         Calculation = etree.SubElement(calculationCollection, 'Calculation')
@@ -200,7 +221,7 @@ class AIMTemplate:
         User.attrib['cagridId'] = '0'
         User.attrib['loginName'] = ''
         User.attrib['name'] = ''
-        User.attrib['numberWithinRoleOfClinicalTrial'] = ''
+        User.attrib['numberWithinRoleOfClinicalTrial'] = '0'
         User.attrib['roleInTrial'] = 'N/A'
         # create an AIM ImageAnnotation template - equipment sub-tree w/attributes
         equipment = etree.SubElement(ImageAnnotation, 'equipment')
