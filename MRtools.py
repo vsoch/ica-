@@ -217,11 +217,9 @@ class Data:
         # First convert from MNI to the images raw coordinate space
         MNIxyz = self.mnitoRCP(MNIcoord)
         try:
-            return self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]].tolist()[0]
+            return self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]]
         except:
             return 0
-        #else:
-        #    return self.data[MNIxyz[0],MNIxyz[1],MNIxyz[2]].tolist()[0]
         
     def getValRCP(self,RCPxyz):
         '''Image.getValRCP([RCPx,RCPy,RCPz]) returns data value from RCP coordinate input'''
@@ -229,8 +227,7 @@ class Data:
             return self.data[RCPxyz[0],RCPxyz[1],RCPxyz[2]]
         except:
             return 0 
-            # print "RCP coordinate " + str(RCPxyz) + " undefined in " + self.name
-
+        
 
 # IMAGE DATA RETURN - All data
     def getData(self):
@@ -272,18 +269,30 @@ class Data:
 
     def mnitoRCP(self,coord):
         '''Image.mnitoRCP([x,y,z]) returns an RCP from an MNI coordinate input'''
-        xcor = (coord[0] - self.aff[0,3]) / self.aff[0,0]
-	ycor = (coord[1] - self.aff[1,3]) / self.aff[1,1]
-	zcor = (coord[2] - self.aff[2,3]) / self.aff[2,2]
-	return [xcor,ycor,zcor]
+        # Find MNI coordinate in data.XYZ
+        a = set(np.where(self.XYZ[0] == coord[0])[1].tolist()[0])
+        b = set(np.where(self.XYZ[1] == coord[1])[1].tolist()[0])
+        c = set(np.where(self.XYZ[2] == coord[2])[1].tolist()[0])
 
+        # Here we are getting the intersection between a,b, and c, which is the index for the RCP
+        RCPindex = self.RCP[:,list(a.intersection(b).intersection(c))[0]].tolist()
+
+        # Return RCPindex for x,y,z
+        return [RCPindex[0][0],RCPindex[1][0],RCPindex[2][0]]
+	
     def rcptoMNI(self,coord):
         '''Image.rcptoMni([x,y,z]) returns the an MNI coordinate from an RCP input'''
-        xcor = (coord[0] * self.aff[0,0]) + self.aff[0,3]
-	ycor = (coord[1] * self.aff[1,1]) + self.aff[1,3]
-	zcor = (coord[2] * self.aff[2,2]) + self.aff[2,3]
-	return [xcor,ycor,zcor]
+        # Find RCP coordinate in data.RCP
+        a = set(np.where(self.RCP[0] == coord[0])[1].tolist()[0])
+        b = set(np.where(self.RCP[1] == coord[1])[1].tolist()[0])
+        c = set(np.where(self.RCP[2] == coord[2])[1].tolist()[0])
 
+        # Here we are getting the intersection between a,b, and c, which is the index for the RCP
+        MNIindex = self.XYZ[:,list(a.intersection(b).intersection(c))[0]].tolist()
+
+        # Return MNIindex for x,y,z
+        return [MNIindex[0][0],MNIindex[1][0],MNIindex[2][0]]
+        
 # THRESHOLDING AND FILTERING
 
     def threshmin(self,threshmin):

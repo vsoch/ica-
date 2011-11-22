@@ -167,7 +167,7 @@ class AIMTemplate:
         ImageAnnotation.attrib['dateTime'] = self.time
         ImageAnnotation.attrib['cagridId'] = '0'
         ImageAnnotation.attrib['name'] = record
-        ImageAnnotation.attrib['uniqueIdentifier'] = ''        
+        ImageAnnotation.attrib['uniqueIdentifier'] = self.time + "." + str(record)        
         ImageAnnotation.attrib['codeMeaning'] = 'MRI 3D Image'
         ImageAnnotation.attrib['codeValue'] = 'birnlex_2033'
         ImageAnnotation.attrib['codingSchemeDesignator'] = 'NeuroLEX'
