@@ -269,7 +269,28 @@ class Data:
 
     def mnitoRCP(self,coord):
         '''Image.mnitoRCP([x,y,z]) returns an RCP from an MNI coordinate input'''
-        # Find MNI coordinate in data.XYZ
+        
+        # (MNI - origindist) / voxelcoord = rawX
+        coordx = (coord[0] - self.aff[0,3]) / self.aff[0,0]
+        coordy = (coord[1] - self.aff[1,3]) / self.aff[1,1]
+        coordz = (coord[2] - self.aff[2,3]) / self.aff[2,2]
+
+        return [coordx,coordy,coordz]
+         
+    def rcptoMNI(self,coord):
+        '''Image.rcptoMNI([x,y,z]) returns an MNI from an RCP coordinate input'''
+        
+        # (RAW * voxelcoord) + origindist = MNI
+        coordx = (coord[0] * self.aff[0,0]) + self.aff[0,3]
+        coordy = (coord[1] * self.aff[1,1]) + self.aff[1,3]
+        coordz = (coord[2] * self.aff[2,2]) + self.aff[2,3]
+
+        return [coordx,coordy,coordz]
+
+    def mnitoRCPIndex(self,coord):
+        '''Image.mnitoRCP([x,y,z]) returns an RCP from an MNI coordinate input by using XYZ index'''
+        # Find MNI coordinate in data.XYZ:
+        
         a = set(np.where(self.XYZ[0] == coord[0])[1].tolist()[0])
         b = set(np.where(self.XYZ[1] == coord[1])[1].tolist()[0])
         c = set(np.where(self.XYZ[2] == coord[2])[1].tolist()[0])
@@ -280,16 +301,14 @@ class Data:
         # Return RCPindex for x,y,z
         return [RCPindex[0][0],RCPindex[1][0],RCPindex[2][0]]
 	
-    def rcptoMNI(self,coord):
-        '''Image.rcptoMni([x,y,z]) returns the an MNI coordinate from an RCP input'''
+    def rcptoMNIIndex(self,coord):
+        '''Image.rcptoMni([x,y,z]) returns the an MNI coordinate from an RCP input by using XYZ index'''
         # Find RCP coordinate in data.RCP
         a = set(np.where(self.RCP[0] == coord[0])[1].tolist()[0])
         b = set(np.where(self.RCP[1] == coord[1])[1].tolist()[0])
         c = set(np.where(self.RCP[2] == coord[2])[1].tolist()[0])
-
         # Here we are getting the intersection between a,b, and c, which is the index for the RCP
         MNIindex = self.XYZ[:,list(a.intersection(b).intersection(c))[0]].tolist()
-
         # Return MNIindex for x,y,z
         return [MNIindex[0][0],MNIindex[1][0],MNIindex[2][0]]
         
