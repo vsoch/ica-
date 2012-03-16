@@ -23,6 +23,9 @@ Main Options:
 Optional:
   --rdf                  full path to rdf file to map AALID to FMAID
   --url                  url to map this path
+
+Currently only supports 3D image templates and inputs (if 4D input, first TR used)
+
 """
 
 __author__ = 'Nolan Nichols'
@@ -45,8 +48,8 @@ import datetime
 class AIMTemplate:
     def __init__(self,infile):
         self.infile = infile                                          
-        self.FMRI = MRtools.Data(infile)              # Read the input file into a MRTools Data object, for easy query 
-        self.AAL = MRtools.Data('MR/aal2mni152.nii.gz')  # Read the MNI152 template with labels into MRTrans object
+        self.FMRI = MRtools.Data(infile,'3D')                 # Read the input file into a MRTools Data object, for easy query 
+        self.AAL = MRtools.Data('MR/aal2mni152.nii.gz','3D')  # Read the MNI152 template with labels into MRTrans object
                                                 # single analyze volume in MNI152 space with integers 1-116 for anat labels
                                                 # In future this can come from online location, now is hard coded file
         self.aalID = self.getAALs()             # An array of all IDs found in the AAL input image

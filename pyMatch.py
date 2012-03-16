@@ -28,6 +28,7 @@ error, because there is something wrong with your template or image!
 USAGE: python pyMatch.py --subs=sublist.txt --template=/path/to/image.nii.gz --images=imagelist.txt --output=/path/for/outfile
 
 Intended usage is for one template for 1+ subjects/groups with a list of component images.  
+Currently only supports matching 3D images (if 4D input, first timepoint will be used)
 
 OUTPUT: (template_name)_bestcomps.txt and (template_name)_beststats.txt w/ top 3 components for each subject/group
 
@@ -160,7 +161,7 @@ def main(argv):
     checkInput(subfile,imgfiles)
         
     # Read in template image to MRtools Data object, and get xyz and raw data
-    Template = MRtools.Data(input1)
+    Template = MRtools.Data(input1,'3D')
     
     # Prepare output file
     if not output:
@@ -198,7 +199,7 @@ def main(argv):
                     
                 try:
                     # Use MRtools Data class to read in image
-                    Contender = MRtools.Data(img_current)
+                    Contender = MRtools.Data(img_current,'3D')
                     # Since these have already been selected from filtered IC networks, we add each one
                     Match.addComp(Contender)
                 except:

@@ -32,6 +32,8 @@ python melodic_hp.py -o /exp/list --name=run1 --ts=/exp/gica/run1/groupmelodic.i
 
 OUTPUT: (name_IC-hpfilter-good.txt) and (name_DR-hpfilter-good.txt)
 
+Currently only supports filtering 3D images (if 4D input, first timepoint will be used)
+
 """
 
 __author__ = "Vanessa Sochat (vsochat@stanford.edu)"
@@ -155,7 +157,7 @@ def main(argv):
         freq_current = timepath + "/f" + zstatnum + ".txt"
         try:
             # Use MRtools Filter class to determine if this component is "good"
-            Contender = MRtools.Data(img_current)
+            Contender = MRtools.Data(img_current,'3D')
             
             # If it's good, add to dictionary to print
             if Filter.isGood(Contender,ts_current,freq_current):

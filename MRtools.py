@@ -56,7 +56,7 @@ import getopt
 
 # Data------------------------------------------------------------------------------
 class Data:
-    def __init__(self,imname):
+    def __init__(self,imname,dim=None):
         self.name = imname  # name of the image, as user has input
         self.path = None    # Full path to the image        
         self.img = None     # a nibabel Nifti object to hold image
@@ -69,8 +69,10 @@ class Data:
             self.readDim()
             self.data = []      # the raw Y data 
             self.aff = []       # Affine transformation matrix
-            self.readData()
-            self.readAff()
+            self.readData(dim)  # Will read data as 3D (first timepoint)
+                                # or 4D (timeseries).  If dim is not defined,
+                                # will try 4D and then 3D       
+	    self.readAff()
                         
             self.XYZ = []       # XYZ coordinates to match raw data
             self.RCP = []       # "raw coordinate points"
@@ -95,7 +97,7 @@ class Data:
             return False
         return True
 
-# READ DATA
+# READ DATA FUNCTIONS
     def readDim(self):
         self.xdim = self.img.get_shape()[0]
         self.ydim = self.img.get_shape()[1]
@@ -107,56 +109,87 @@ class Data:
     
 
 # Read raw image data
-    def readData(self):
+    def readData(self,dim):
         # Read in all data to a temporary variable
         dataTEMP = self.img.get_data()
-        # Check to see if we have a 4D image, represented by a 4th dimension
-        if len(self.img.get_shape()) > 3:
-            if self.img.get_shape()[3] > 1:
-                print self.name + " has more than one timepoint, will try using first by default."        		
-                if self.notEmpty(dataTEMP[:,:,:,0:1]):	
-                    self.data = dataTEMP[:,:,:,0:1]
-                else:
-                    # Once or twice I've seen melodic spit out a component with 2 TPs, the first empty, and the second correct.
-                    print "Data at timepoint 1 is an empty or errored image.  Trying next timepoints..."
-                    if self.img.get_shape()[3] < 2:
-                        print "The template is a 4D file but only has one timepoint that cannot be used.  Exiting!"
-                        sys.exit()
-                    else:
-                        # Here we are checking timepoint 2, which likely has the map.  We could continue checking timepoints
-		        # if two is empty, but this probably means something hugely wrong with the image, and we should stop
-		        # and alert the user
-                        if self.notEmpty(dataTEMP[:,:,:,1:2]):	
-                            print self.name + " has empty first timepoint, using second."
-                            self.data = dataTEMP[:,:,:,1:2]
-                        else:
-                            print self.name + " is empty at both timepoints 1 and 2, and we cannot use it.  Exiting!"
-	    else:
-                # Make sure image isn't empty, and set to dataTEMP
-                if self.notEmpty(dataTEMP):
-                    self.data = dataTEMP
-                else:
-                    print self.name + " is empty and cannot be used as a template.  Exiting."
-                    sys.exit()
 
-        # Otherwise, we have a 3D image and only one set of datapoints to try	
-        else:
-	    # Make sure that we don't have an empty image
-            if self.notEmpty(dataTEMP):	
-                self.data = dataTEMP
-            else:
-                print self.name + " is empty and cannot be used as a template!  Exiting."
-                sys.exit()
+        # If dim is not specified, try 4D then 3D
+        if not dim:    
+            # Check to see if we have a 4D image, represented by a 4th dimension
+            if len(self.img.get_shape()) > 3:
+                if self.img.get_shape()[3] > 1:  # If we have a 4D image
+                    self.read4DData(dataTEMP)
+                elif self.img.get_shape()[3] <= 1: # If we have a 3D image
+                    self.read3DData(dataTEMP)
+
+            # If we have a 3D image and only one set of datapoints to try
+	    else:
+                self.read3DData(dataTEMP)
+	# If dim is 3D
+        elif dim.lower() == "3d": self.read3DData(dataTEMP)
+	# If dim is 4D
+        elif dim.lower() == "4d": self.read4DData(dataTEMP)  
+       
+        
+# Read in 3D data (with 4th dimension 1)
+    def read3DData(self,dataTEMP):
+        print self.name + " extracting 3D data..."
+        self.dim = '3d'
+        # If we are extracting 3D data from 4D
+        if len(np.shape(dataTEMP)) > 3:
+            if self.notEmpty(dataTEMP[:,:,:,0:1]) == 0:	
+                print self.name + " 3D extraction is empty."
+            # Save the data
+            self.data = dataTEMP[:,:,:,0:1]
+        # If we are extracting 3D data from 3D
+        else: # Tell the user if the data is empty	
+            if self.notEmpty(dataTEMP[:,:,:]) == 0:	
+                print self.name + " 3D extraction is empty."
+            # Save the data
+            self.data = dataTEMP[:,:,:]
+
+# Read in 4D data
+    def read4DData(self,dataTEMP):
+        if len(np.shape(dataTEMP)) > 3:
+            print self.name + " is 4D... extracting entire timeseries."
+            self.dim = '4d'
+            # Check that the data is not empty?
+            if self.notEmpty(dataTEMP[:,:,:,:]) == 0:	
+                print self.name + " is 4D and empty."
+            # Save the data
+            self.data = dataTEMP[:,:,:,:] 
+        else: 
+            print self.name + " is not 4D... will extract as 3D."
+            self.read3DData(dataTEMP)
+
+# Return data for one timepoint / slice:
+    def getSlice(self,TR):
+        try:
+            if self.notEmpty(self.data[:,:,:,TR-1:TR]) == 0:	
+                print self.name + " is empty at slice " + str(TR)
+            return self.data[:,:,:,TR-1:TR]
+        except:
+            print "Cannot read slice " + str(TR) + " for " + self.name
+            print "Data " + " is " + self.dim + " and dimensions are " + str(data.get_shape())
 
 # Check if data is empty
     def notEmpty(self,data):
-        for p in range(0,np.shape(data)[0]-1):
-            for o in range(0,np.shape(data)[1]-1):
-                for d in range(0,np.shape(data)[2]-1):
-                    if data[p,o,d] != 0:
-                        return True
-        return False
+        # For 3D Data
+        if self.dim == '3d':
+            for p in range(0,np.shape(data)[0]-1):
+                for o in range(0,np.shape(data)[1]-1):
+                    for d in range(0,np.shape(data)[2]-1):
+                        if data[p,o,d] != 0:
+                            return True
+        elif self.dim == '4d':
+            for p in range(0,np.shape(data)[0]-1):
+                for o in range(0,np.shape(data)[1]-1):
+                    for d in range(0,np.shape(data)[2]-1):
+                        for s in range(0,np.shape(data)[3]-1):
+                            if data[p,o,d,s] != 0:
+                                return True
 
+        return False
 
 # Read XYZ Coordinates 
     def readXYZ(self):
