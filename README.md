@@ -1,8 +1,8 @@
 ## ica+ PACKAGE FOR DUAL REGRESSION IN PYTHON
 Vanessa Sochat
 
-Currently being updated for Stanford, Sherlock Cluster
-Updated: September 21st, 2011
+- Currently being updated for Stanford, Sherlock Cluster
+- Last Release: September 21st, 2011
 
 ### Overview
 
@@ -20,8 +20,6 @@ melodic_dr.sh: Performs dual regression.
 melodic_hp.sh: Runs a highpass filter over all group network gica results to produce a list of “good” ones. Can be run with ica+ (not yet tested) or standalone on command line. 
 pyMatch.py: Takes list of “good” images (can be output from melodic_hp) and produces list of best matches to user specified template. 
 AIMTemp.py Create an AIM xml template for the creation of xml files for AIM (Annotated Image Markup)
-
-The entire project is hosted at github-ica+
 
 
 ### ica+ Add Ons:
