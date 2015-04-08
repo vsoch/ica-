@@ -38,6 +38,11 @@ To use Match class with Image:
 >> Match.addComp(Contender)
 >> Match.doTemplateMatch()
 
+# Create mask image
+# Apply mask image
+# Save data to mat file
+# Visualize data - get from Samir
+
 """
 
 __author__ = "Vanessa Sochat (vsochat@stanford.edu)"
@@ -53,6 +58,7 @@ import scitools.numpytools as scinu
 import numpy as np
 import operator
 import getopt
+import copy
 
 # Data------------------------------------------------------------------------------
 class Data:
@@ -382,6 +388,15 @@ class Data:
         if 0 in uniques: uniques.remove(0) 
         return uniques
 
+# FILE OPERATIONS AND SAVING
+# Save image to file.  Output name should include .nii, .nii.gz, or .img
+    def save(outname):
+	try:
+            new_image = nib.Nifti1Image(self.data, self.aff)
+            nib.save(new_image,outname)
+        except:
+            print "Error saving file.  Should end in .nii, .nii.gz, or .img"
+    
 
 # Filter------------------------------------------------------------------------------
 class Filter:
@@ -497,6 +512,44 @@ class Filter:
             return False
         else:
             return True
+
+
+# Mask------------------------------------------------------------------------------
+class Mask:
+
+    '''Mask Data Objects'''
+    def __init__(self,Mask):
+        self.createMask(Mask) # Create binary mask from input image
+        
+# Creates mask from input image.  Must be 3D or use first timepoint of 4D
+    def createMask(self,inmask):
+	
+        # Create new clone of data object to hold mask
+	mask = Data(inmask)
+        # maskdata = np.zeros(np.shape(self.mask.data))
+        # NEED TO TEST WITH 4D DATA! if len(nu.shape(inmask)) > 3:
+            #print "4D image found, will use first timepoint of " + inmask.name
+	for p in range(0,mask.xdim-1):
+            for o in range(0,mask.ydim-1):
+                for d in range(0,mask.zdim-1):
+                    if mask.data[p,o,d] > 0:
+                        mask.data[p,o,d] = 1
+        self.mask = mask
+        return mask
+
+# Save mask to file.  Output format can be nii, niigz, img
+    def saveMask(outname):
+        self.mask.save(outname)
+
+# Takes an image as input, returns masked data
+    def applyMask(self,image):
+        if np.shape(self.mask.data) != np.shape(image.data):
+            print "Dimensions of mask and image not equal.  Will not mask!"
+        else:
+            # Create new clone of data object to hold mask
+            maskedimg = copy.deepcopy(image)     
+            maskedimg.data = image.data*self.mask.data
+            return maskedimg           
 
 
 # Match------------------------------------------------------------------------------

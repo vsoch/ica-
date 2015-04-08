@@ -19,6 +19,7 @@ Main Options:
   --dr                   dual regression
   --match                find top DR result matches to a template image
   --aim                  create AIM xmls for top matches
+  --queue                name of slurm queue to run jobs (uses sbatch)
 
 ALWAYS REQUIRED:
   -o ..., --output=...   experiment folder where the following subdirectories will be created:
@@ -28,7 +29,7 @@ ALWAYS REQUIRED:
 			   dr: (dr1, dr2, dr3...)
 
 TO RUN SINGLE SUBJECT ICA:
-   python ica+.py -o /my/experiment --ica=input.txt
+   python ica+.py -o /my/experiment --ica=input.txt --queue=russpold
      input.txt is a three column csv file with one row per subject
      each row contains: subjectID,full/path/highres.nii.gz,full/path/functional.nii.gz
      output goes to /my/experiment/ica/sub1.ica, /my/experiment/ica/sub2.ica...
@@ -77,8 +78,8 @@ TO CREATE AIM TEMPLATES FROM TOP MATCHES
 """
 
 __author__ = "Vanessa Sochat (vsochat@stanford.edu)"
-__version__ = "$Revision: 2.1 $"
-__date__ = "$Date: 2011/09/13 $"
+__version__ = "$Revision: 3.1 $"
+__date__ = "$Date: 2015/04/08 $"
 __license__ = "Python"
 
 from xml.dom import minidom
@@ -155,7 +156,7 @@ class Melodic:
 	subprocess.Popen(['%s' % scommand], shell=True, executable = "/bin/bash")
         time.sleep(2)	
 
-    def single(self,anat,func,timepoints,outdir,script):
+    def single(self,anat,func,timepoints,outdir,script,queue="normal"):
         self.outdir = outdir
         self.anat = anat
         self.func = func
@@ -164,9 +165,9 @@ class Melodic:
         for sub,funcdata in sorted(self.func.items()):
             if self.createSSOut(sub):
               self.printSS(sub,self.anat[sub],funcdata)
-              self.runICA(sub,funcdata,self.anat[sub],script,outdir + "/ica/" + str(sub) + ".ica")
+              self.runICA(sub,funcdata,self.anat[sub],script,"%s/ica/%s/.ica" %(outdir,str(sub)))
               # Save the full single subject directory path to the icas list
-	      self.icas.append(outdir + "/ica/" + str(sub) + ".ica")
+	      self.icas.append("%s/ica/%s.ica" %(outdir,str(sub)))
         
         # Format the date for printing
         now = datetime.datetime.now()
@@ -180,31 +181,33 @@ class Melodic:
         GPfile.writelines(self.icas[-1])
         GPfile.close()
         
-    def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir):
+    def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue):
         # Submit subject ICA script	
-	subprocess.Popen(['bsub','-J',str(subject) + "_ica",'-o',ssoutdir + "/log/ica.out",'-e',ssoutdir + '/log/ica.err',scriptinput,ssoutdir,funcinput, anatinput])
+	subprocess.Popen(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
+                          '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
+                          '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput, anatinput])
         time.sleep(2) 
 
     def createGPout(self,outdir):
 	if not os.path.exists(outdir):
-    	    print "Creating output directory " + outdir + "..."
+    	    print "Creating output directory %s..." %(outdir)
             os.makedirs(outdir)	    	
 	else:
-	    print "Output directory " + outdir + " already created."
+	    print "Output directory %s already created." %(outdir)
 
     def createSSOut(self,subject):
-        if not os.path.exists(self.outdir + "/ica/" + str(subject) + ".ica"):
-            os.makedirs(self.outdir + "/ica/" + str(subject) + ".ica")
-            os.makedirs(self.outdir + "/ica/" + str(subject) + ".ica/log")	    	
+        if not os.path.exists("%s/ica/%s.ica" %(self.outdir,str(subject))):
+            os.makedirs("%s/ica/%s.ica" %(self.outdir,str(subject)))
+            os.makedirs("%s/ica/%s.ica/log" %(self.outdir,str(subject)))	    	
 	    return True
 	else:
-	    print "Output ica directory already exists for " + subject + ". Will not run!"
+	    print "Output ica directory already exists for %s. Will not run!" %(subject)
 	    return False
 
     def printSS(self,subject,anatprint,funcprint):
         # Print raw subject data to log txt file, for later use 
-        SSfile = open(self.outdir + "/ica/" + str(subject) + ".ica/log/input.txt","w")
-        SSfile.write(str(subject) + "," + anatprint + "," + funcprint)
+        SSfile = open("%s/ica/%s.ica/log/input.txt" %(self.outdir,str(subject)),"w")
+        SSfile.write("%s,%s,%s" %(str(subject),anatprint,funcprint))
         SSfile.close()
     
 	 
@@ -237,10 +240,10 @@ class Setup:
 	    # Copy scans file to list folder, in case we want it again
             now = datetime.datetime.now()
             now = now.strftime("%Y-%m-%d_%H_%M")
-            os.system("cp " + scans + " " + outdir + "/list/" + now + "_raw.txt")
+            os.system("cp %s %s/list/%s_raw.txt" %(scans,outdir,now)
        
 	except:
-            print "Cannot open file " + scans + ". Exiting"
+            print "Cannot open file %s. Exiting" %(scans)
             sys.exit()
 
     def checkData(self):
@@ -248,14 +251,14 @@ class Setup:
 	print "Checking for all anatomical raw data..."
 	for k,anatfile in self.anat.items():
             if not os.path.isfile(anatfile):
-	        print "Cannot find " + anatfile + ". Exiting"
+	        print "Cannot find %s. Exiting" %(anatfile)
                 sys.exit()
 
         # Check that all files exist for func, exit if one missing
 	print "Checking for all functional raw data..."
         for k,funcfile in self.func.items():
             if not os.path.isfile(funcfile):
-                print "Cannot find " + funcfile + ". Exiting"
+                print "Cannot find %s. Exiting" %(funcfile)
                 sys.exit()
 
 	# Check that the orientation is LAS for the anatomical data
@@ -263,7 +266,7 @@ class Setup:
 	for k,i in self.anat.items():
 	    anat_orient = subprocess.Popen(['fslorient','-getorient',i],stdout=subprocess.PIPE)
             if anat_orient.stdout.read() != "RADIOLOGICAL\n":
-		print "Anatomical " + i + " is not in radiological (LAS) orientation. Exiting."
+		print "Anatomical %s is not in radiological (LAS) orientation. Exiting." %(i)
 		sys.exit(2)
 	
 	# Check that the number of timepoints is equal for all functional runs, and check orientation
@@ -275,18 +278,18 @@ class Setup:
 	    func_check = subprocess.Popen(['fslval',i,'dim4'],stdout=subprocess.PIPE)
             func_check = func_check.stdout.read()
 	    if func_check != func_standard:
-		print "First subject resting data has " + func_standard + " timepoints"
-                print "Functional " + i + " has " + func_check + " timepoints."
+		print "First subject resting data has %s timepoints" %func_standard
+                print "Functional %s has %s timepoints." %(i,func_check)
                 print "Timepoints must be equal! Exiting"
                 sys.exit(2)
-        print "The number of timepoints for all runs is " + func_standard
+        print "The number of timepoints for all runs is %s" %func_standard
 	self.timepoints = func_standard      # save this value to print to each ica folder
 
 	print "Checking for LAS orientation of functional data..."		
 	for k,i in self.func.items():
             func_orient = subprocess.Popen(['fslorient','-getorient',i],stdout=subprocess.PIPE)
             if func_orient.stdout.read() != "RADIOLOGICAL\n":
-		print "Functional " + i + " is not in radiological (LAS) orientation. Exiting."
+		print "Functional %s is not in radiological (LAS) orientation. Exiting." %i
 		sys.exit(2)
 
 	# return the number of timepoints
@@ -298,7 +301,7 @@ class Setup:
 	    # Return list of anatomical files, list of functional files, and timepoints
 	    return (self.anat,self.func,self.timepoints)
         else: 
-            print "Error: There are " + str(len(anat)) + " anatomical input and " + str(len(func)) + " functional paths.  Check input file and rerun."
+            print "Error: There are %s anatomical input and %s functional paths.  Check input file and rerun." %(str(len(anat)),str(len(func)))
             sys.exit()
 
 #----QUALITY ANALYSIS---------------------------------------------------------------
@@ -783,6 +786,9 @@ def main(argv):
             iters = arg
         if opt in ("--ics"):
             ics = arg
+        if opt in ("--queue"):
+            queue = arg
+
 
     fslcheck()            	  # Check to make sure fsl is installed!
     scriptdict = scriptcheck()	  # look for required scripts
@@ -798,12 +804,9 @@ def main(argv):
             usage()
             sys.exit()
         icaRun = Setup()
-        melodicinput = icaRun.ica(scans,outdir)  
-        anat = melodicinput[0]
-        func = melodicinput[1]
-        timepoints = melodicinput[2]
+        anat,func,timepoints = icaRun.ica(scans,outdir)  
         melRun = Melodic()
-        melRun.single(anat,func,timepoints,outdir,scriptdict["melodic_ss.sh"])
+        melRun.single(anat,func,timepoints,outdir,scriptdict["melodic_ss.sh"],queue)
         print "Done submitting ICA jobs."
         print "Follow output at " + outdir + "/ica/"
         print "When complete, use " + outdir + "/list/*_ica.txt for qa or gica input file."
