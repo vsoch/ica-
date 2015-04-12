@@ -167,7 +167,8 @@ class Melodic:
         for sub,funcdata in sorted(self.func.items()):
             if self.createSSOut(sub):
               self.printSS(sub,self.anat[sub],funcdata)
-              self.runICA(sub,funcdata,self.anat[sub],script,"%s/ica/%s/.ica" %(outdir,str(sub)))
+              self.runICA(sub,funcdata,self.anat[sub],script,
+                          "%s/ica/%s/.ica" %(outdir,str(sub)),queue,tr)
               # Save the full single subject directory path to the icas list
 	      self.icas.append("%s/ica/%s.ica" %(outdir,str(sub)))
         
@@ -183,9 +184,13 @@ class Melodic:
         GPfile.writelines(self.icas[-1])
         GPfile.close()
         
-    def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue):
-        # Submit subject ICA script	
-	subprocess.Popen(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
+    def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr):
+        # Submit subject ICA script
+	
+	    subprocess.list2cmdline(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
+                          '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
+                          '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput,anatinput,tr])
+        subprocess.Popen(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
                           '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
                           '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput, anatinput,tr])
         time.sleep(2) 
