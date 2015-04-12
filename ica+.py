@@ -19,7 +19,7 @@ Main Options:
   --dr                   dual regression
   --match                find top DR result matches to a template image
   --aim                  create AIM xmls for top matches
-  --queue                name of slurm queue to run jobs (uses sbatch)
+
 
 ALWAYS REQUIRED:
   -o ..., --output=...   experiment folder where the following subdirectories will be created:
@@ -27,6 +27,8 @@ ALWAYS REQUIRED:
 			   qa: 
 			   gica: (group1.gica, group2.gica, group3.gica...)
 			   dr: (dr1, dr2, dr3...)
+  --queue                name of slurm queue to run jobs (uses sbatch)
+  --tr=                  TR
 
 TO RUN SINGLE SUBJECT ICA:
    python ica+.py -o /my/experiment --ica=input.txt --queue=russpold
@@ -156,7 +158,7 @@ class Melodic:
 	subprocess.Popen(['%s' % scommand], shell=True, executable = "/bin/bash")
         time.sleep(2)	
 
-    def single(self,anat,func,timepoints,outdir,script,queue="normal"):
+    def single(self,anat,func,timepoints,outdir,script,tr,queue="normal"):
         self.outdir = outdir
         self.anat = anat
         self.func = func
@@ -185,7 +187,7 @@ class Melodic:
         # Submit subject ICA script	
 	subprocess.Popen(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
                           '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
-                          '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput, anatinput])
+                          '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput, anatinput,tr])
         time.sleep(2) 
 
     def createGPout(self,outdir):
@@ -734,7 +736,8 @@ def varcheck(vartocheck):
 #----------------------------------------------
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv, "ho:", ["help","output=","qa=","ica=","gica=","dr=",'name=',"con=","mat=","iter=","match="])
+        opts, args = getopt.getopt(argv, "ho:", ["help","output=","qa=","ica=","gica=",
+                           "dr=",'name=',"con=","mat=","iter=","match=","tr=","queue="])
 
     except getopt.GetoptError:
         usage()
@@ -774,6 +777,8 @@ def main(argv):
 
         if opt in ("-o", "--output"):
             outdir = arg        
+        if opt in ("--tr"):
+            tr = arg        
         if opt in ("--name"):
             runname = arg
         if opt in ("--template"):
@@ -806,7 +811,7 @@ def main(argv):
         icaRun = Setup()
         anat,func,timepoints = icaRun.ica(scans,outdir)  
         melRun = Melodic()
-        melRun.single(anat,func,timepoints,outdir,scriptdict["melodic_ss.sh"],queue)
+        melRun.single(anat,func,timepoints,outdir,scriptdict["melodic_ss.sh"],tr,queue)
         print "Done submitting ICA jobs."
         print "Follow output at " + outdir + "/ica/"
         print "When complete, use " + outdir + "/list/*_ica.txt for qa or gica input file."

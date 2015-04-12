@@ -2,20 +2,20 @@
 
 # This bash script does an Individual ICA for use with a multisession temporal concatenation. It takes the data through the application of the registration, to be ready for group ICA.
 
+module load fsl
+
 # USER DEFINED VARIABLES
-TR=2.5            # TR
 HPFC=150          # highpass frequency filter cutoff
 SKERN=6.0         # Smoothing kernel (FWSE)
 BBTHRESH=10       # Brain background threshold
-MATLABRUNTIME=/home/vsochat/software/matlab/Matlab64bitRuntime_v714/v714
 LFILT=0.008       # Lower filter threshold
 UFILT=0.1         # Upper filter threshold
-                  # MATLABRUNTIME is path to Matlab Runtime
 
 # VARIABLES DEFINED AT RUNTIME
 OUTPUT=$1         # Output folder (not yet created)
 FUNCDATA=$2       # Full path to raw rest data
 ANATDATA=$3       # Full path to raw anatomical data
+TR=$4
 SCRIPTDIR=$PWD
 
 # SETUP
@@ -115,7 +115,6 @@ fslmaths prefiltered_func_data_bet -thr $thresholdp -Tmin -bin mask -odt char
 # We will need this later to calculate the intensity scaling factor
 meanintensity=`fslstats prefiltered_func_data_mcf -k mask -p 50`
 
-# IM NOT SURE WHAT WE DO WITH THIS?
 # difF is a spatial filtering option that specifies maximum filtering of all voxels
 # I don't completely understand why we would filter one image with itself...
 fslmaths mask -dilF mask
@@ -159,27 +158,27 @@ inscalefactor=`echo "scale=6; ((10000/$meanintensity))" | bc`
 # the intensity normalized data
 fslmaths prefiltered_func_data_smooth -mul $inscalefactor prefiltered_func_data_intnorm
 
-#####FSL BANDPASS METHOD  NOT IN USE##################################################################
+#####FSL BANDPASS METHOD  
 # Now bandpass temporal filter the intensity normalized data.
 # We need to calculate $hp_sigma_vol before continuing:
 # $HPFC is the highpass filter cutoff, and we set the second 
 # argument to -1, since we don't want lowpass filtering
-# hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
-# hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
+hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
+hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
 
-# fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma_vol -1 prefiltered_func_data_tempfilt
-######################################################################################################
+fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma_vol -1 prefiltered_func_data_tempfilt
 
+# NOT IN USE #########################################################
 # Bandpass filter the data using matlab executable, bandpass
-
 # First convert the .nii.gz to .nii
-fslchfiletype NIFTI prefiltered_func_data_intnorm.nii.gz
+#fslchfiletype NIFTI prefiltered_func_data_intnorm.nii.gz
 
+# If matlab bandpass desired
 # Launch matlab script (<scriptname> <matlabruntime> <input .nii> <name for output .nii (no extension)> <TR> <lower filter> <upper filter>
-$SCRIPTDIR/run_Bandpass.sh $MATLABRUNTIME prefiltered_func_data_intnorm.nii prefiltered_func_data_tempfilt $TR $LFILT $UFILT
-
+# $SCRIPTDIR/run_Bandpass.sh $MATLABRUNTIME prefiltered_func_data_intnorm.nii prefiltered_func_data_tempfilt $TR $LFILT $UFILT
 # The output will be .nii, which we need to change back to .nii.gz
-fslchfiletype NIFTI_GZ prefiltered_func_data_tempfilt.nii
+#fslchfiletype NIFTI_GZ prefiltered_func_data_tempfilt.nii
+######################################################################
 
 # Use fslmaths to copy the file with a new name (filtered_func_data)
 fslmaths prefiltered_func_data_tempfilt filtered_func_data
