@@ -168,7 +168,7 @@ class Melodic:
             if self.createSSOut(sub):
               self.printSS(sub,self.anat[sub],funcdata)
               self.runICA(sub,funcdata,self.anat[sub],script,
-                          "%s/ica/%s/.ica" %(outdir,str(sub)),queue,tr)
+                          "%s/ica/%s.ica" %(outdir,str(sub)),queue,tr)
               # Save the full single subject directory path to the icas list
 	      self.icas.append("%s/ica/%s.ica" %(outdir,str(sub)))
         
