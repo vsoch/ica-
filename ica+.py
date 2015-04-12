@@ -187,7 +187,7 @@ class Melodic:
     def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr):
         # Submit subject ICA script
 	
-	    subprocess.list2cmdline(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
+	subprocess.list2cmdline(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
                           '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
                           '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput,anatinput,tr])
         subprocess.Popen(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
