@@ -31,7 +31,7 @@ ALWAYS REQUIRED:
   --tr=                  TR
 
 TO RUN SINGLE SUBJECT ICA:
-   python ica+.py -o /my/experiment --ica=input.txt --queue=russpold
+   python ica+.py -o /my/experiment --ica=input.txt --queue=russpold --tr=3.0
      input.txt is a three column csv file with one row per subject
      each row contains: subjectID,full/path/highres.nii.gz,full/path/functional.nii.gz
      output goes to /my/experiment/ica/sub1.ica, /my/experiment/ica/sub2.ica...
@@ -244,7 +244,7 @@ class Setup:
             now = now.strftime("%Y-%m-%d_%H_%M")
             os.system("cp %s %s/list/%s_raw.txt" %(scans,outdir,now)
        
-	except:
+        except:
             print "Cannot open file %s. Exiting" %(scans)
             sys.exit()
 
