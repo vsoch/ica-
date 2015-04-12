@@ -242,7 +242,7 @@ class Setup:
 	    # Copy scans file to list folder, in case we want it again
             now = datetime.datetime.now()
             now = now.strftime("%Y-%m-%d_%H_%M")
-            os.system("cp %s %s/list/%s_raw.txt" %(scans,outdir,now)
+            os.system("cp %s %s/list/%s_raw.txt" %(scans,outdir,now))
        
         except:
             print "Cannot open file %s. Exiting" %(scans)
