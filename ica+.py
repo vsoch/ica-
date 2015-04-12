@@ -185,14 +185,18 @@ class Melodic:
         GPfile.close()
         
     def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr):
-        # Submit subject ICA script
-	
-	subprocess.list2cmdline(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
-                          '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
-                          '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput,anatinput,tr])
-        subprocess.Popen(['sbatch','-p',queue,'--job-name=',"%s_ica" %(str(subject)),
-                          '--output=',ssoutdir + "/log/ica.out",'--error',ssoutdir + '/log/ica.err',
-                          '--time=2-00:00','--mem=64000',scriptinput,ssoutdir,funcinput, anatinput,tr])
+        # Write job file
+        filey = "%s/log/ica.job" %(ssoutdir)
+        filey = open(filey,"w")
+        filey.writelines("#!/bin/bash\n")
+        filey.writelines("#SBATCH --job-name=%s_ica\n" %(str(subject))
+        filey.writelines("#SBATCH --output=%s/log/ica.out" %(ssoutdir)
+        filey.writelines("#SBATCH --error=%s/log/ica.err" %(ssoutdir)
+        filey.writelines("#SBATCH --time=2-00:00\n")
+        filey.writelines("#SBATCH --mem=64000\n")
+        filey.writelines("%s %s %s %s %s" %(scriptinput,ssoutdir,funcinput,anatinput,tr))
+        filey.close()
+        os.system("sbatch -p %s %s/log/ica.job" %(queue,ssoutdir))
         time.sleep(2) 
 
     def createGPout(self,outdir):
