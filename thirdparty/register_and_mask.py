@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-""" register image to whole-head MNI template and apply mask,
+""" 
+Modified from openFMRI pipeline, Poldracklab
+https://github.com/poldrack/openfmri
+register image to whole-head MNI template and apply mask,
 then register again to brain-only template
 """
 
@@ -17,7 +20,7 @@ def main():
         print '%s does not exist!'%subdir
         sys.exit(0)
       
-    image_prefix = infile.strip(".nii.gz")
+    image_prefix = image_prefix = infile.split(".")[0]
     cmd='%s/N4BiasFieldCorrection -i %s/%s -d 3 -o %s/%s_bfc.nii.gz -c [50,0.0001]'%(ANTSPATH,subdir,infile,subdir,image_prefix)
 
     print cmd
