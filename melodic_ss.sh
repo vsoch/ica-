@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
 # This bash script does an Individual ICA for use with a multisession temporal concatenation. It takes the data through the application of the registration, to be ready for group ICA.
 
-module load fsl
+#module load fsl
 
 # USER DEFINED VARIABLES
 HPFC=150          # highpass frequency filter cutoff
