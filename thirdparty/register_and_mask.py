@@ -4,7 +4,6 @@ then register again to brain-only template
 """
 
 import os,sys
-from run_shell_cmd import *
 
 ANTSPATH=os.environ['ANTSPATH']
 FSLDIR=os.environ['FSLDIR']
@@ -13,17 +12,17 @@ test=False
 def main():
     # first run N4 bias correction
     imgfile=sys.argv[1]
-    subdir,infile=os.path.split(imgfile)
+    subdir,infile=os.path.split(os.path.abspath(imgfile))
     if not os.path.exists(subdir):
         print '%s does not exist!'%subdir
         sys.exit(0)
       
-    image_prefix = %(infile.strip(".nii.gz"))
-    cmd='%sN4BiasFieldCorrection -i %s/%s -d 3 -o %s/%s_bfc.nii.gz -c [50,0.0001]'%(ANTSPATH,subdir,infile,subdir,image_prefix)
+    image_prefix = infile.strip(".nii.gz")
+    cmd='%s/N4BiasFieldCorrection -i %s/%s -d 3 -o %s/%s_bfc.nii.gz -c [50,0.0001]'%(ANTSPATH,subdir,infile,subdir,image_prefix)
 
     print cmd
     if not test:
-        run_shell_cmd(cmd,cwd=subdir)
+        os.system(cmd)
 
     # then align bias-corrected whole-head image to template
 
@@ -34,11 +33,11 @@ def main():
     template_mask='%s/data/standard/MNI152_T1_2mm_brain_mask.nii.gz'%FSLDIR
 
 
-    cmd='%sANTS 3 -m CC[%s,%s/%s_bfc.nii.gz,1,4] -o %s_ANTS.nii.gz %s'%(ANTSPATH,template_wholehead,subdir,
+    cmd='%s/ANTS 3 -m CC[%s,%s/%s_bfc.nii.gz,1,4] -o %s_ANTS.nii.gz %s'%(ANTSPATH,template_wholehead,subdir,
                                                                        image_prefix,image_prefix,PARAMS)
     print cmd
     if not test:
-        run_shell_cmd(cmd,cwd=subdir)
+        os.system(cmd)
 
 
     # create a version of the MNI mask aligned to subject space
@@ -46,25 +45,25 @@ def main():
     cmd='WarpImageMultiTransform 3 %s %s/%s_brain_mask.nii.gz -R %s/%s.nii.gz -i %s/%s_ANTSAffine.txt %s/%s_ANTSInverseWarp.nii.gz --use-NN'%(template_mask,subdir,image_prefix,subdir,image_prefix,subdir,image_prefix,subdir,image_prefix)
     print cmd
     if not test:
-        run_shell_cmd(cmd,cwd=subdir)
+        os.system(cmd)
 
     cmd='fslmaths %s/%s.nii.gz -mul %s/%s_brain_mask.nii.gz %s/%s_brain.nii.gz'%(subdir,image_prefix,subdir,image_prefix,subdir,image_prefix)
     print cmd
     if not test:
-        run_shell_cmd(cmd,cwd=subdir)
+        os.system(cmd)
 
     # rerun warp from stripped highres to stripped template
 
-    cmd='%sANTS 3 -m CC[%s,%s/%s_brain.nii.gz,1,4] -o %s_ANTSstd.nii.gz %s'%(ANTSPATH,template_brain,subdir,image_prefix,image_prefix,PARAMS)
+    cmd='%s/ANTS 3 -m CC[%s,%s/%s_brain.nii.gz,1,4] -o %s_ANTSstd.nii.gz %s'%(ANTSPATH,template_brain,subdir,image_prefix,image_prefix,PARAMS)
     print cmd
     if not test:
-        run_shell_cmd(cmd,cwd=subdir)
+        os.system(cmd)
 
     cmd='WarpImageMultiTransform 3 %s/%s_brain.nii.gz %s/%s_reg2std_ANTS.nii.gz -R %s %s/%s_ANTSWarp.nii.gz %s/%s_ANTSAffine.txt'%(subdir,image_prefix,subdir,image_prefix,template_brain,subdir,image_prefix,subdir,image_prefix)
 
     print cmd
     if not test:
-        run_shell_cmd(cmd,cwd=subdir)
+        os.system(cmd)
 
 if __name__ == '__main__':
     main()
