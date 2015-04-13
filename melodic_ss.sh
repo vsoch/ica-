@@ -48,7 +48,7 @@ fslmaths $ANATDATA mprage
 # ANATOMICAL PREPROCESSING
 
 # Perform BET (brain extraction) on the raw anatomical data
-bet mprage mprage_bet -S -f .225
+bet mprage mprage_bet -B -f 0.5 -g 0
 
 # Delete the raw file
 rm mprage.nii.gz
@@ -208,7 +208,7 @@ mkdir -p reg
 
 # use fslmaths to copy the MNI152_T1 to the current directory
 # the brain extracted anatomical is already here (mprage_bet)
-fslmaths ${FSLDIR}/data/standard/MNI152_T1_2mm_brain standard
+fslmaths ${FSLDIR}/data/standard/MNI152_T1_1mm_brain standard
 
 # Use flirt to register the example_func data to the highres anatomical
 flirt -ref mprage_bet -in example_func -out example_func2mprage_bet -omat example_func2mprage_bet.mat -cost corratio -dof 7 -searchrx -90 90 -searchry -90 90 -searchrz -90 90 -interp trilinear  
