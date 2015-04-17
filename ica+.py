@@ -107,7 +107,8 @@ class Melodic:
         self.timepoints = 0
 	self.outdir = None
 
-    def group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript,tr):
+    def
+group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript,tr,queue="bigmem",mask=None):
         self.outdir = outdir
 	
 	# Create an output name based on date / time, if one not specified
@@ -155,14 +156,15 @@ class Melodic:
         filey = "%s/log/ica.job" %(gpout)
         filey = open(filey,"w")
         filey.writelines("#!/bin/bash\n")
-        filey.writelines("#SBATCH --job-name=%s_gica\n" %(gicaname)
+        filey.writelines("#SBATCH --job-name=%s_gica\n" %(gicaname))
         filey.writelines("#SBATCH --output=%s/log/gica.out\n" %(gpout))
         filey.writelines("#SBATCH --error=%s/log/gica.err\n" %(gpout))
         filey.writelines("#SBATCH --time=16:00\n")
         filey.writelines("#SBATCH --mem=48000\n")
-        filey.writelines('%s %s %s %s %s %s"' %(scriptinput,gpout,pyexec,filterscript,tr,subinput))
+        filey.writelines('%s %s %s %s %s %s "%s"'
+%(scriptinput,gpout,pyexec,filterscript,tr,mask,subinput))
         filey.close()
-        os.system("sbatch -p bigmem --qos=bigmem %s/log/ica.job" %(queue,gpout))
+        os.system("sbatch -p %s --qos=%s %s/log/ica.job" %(queue,queue,gpout))
 
 
     def single(self,anat,func,timepoints,outdir,script,tr,queue="normal"):
@@ -753,7 +755,7 @@ def varcheck(vartocheck):
 def main(argv):
     try:
         opts, args = getopt.getopt(argv, "ho:", ["help","output=","qa=","ica=","gica=",
-                           "dr=",'name=',"con=","mat=","iter=","match=","tr=","queue="])
+                           "dr=",'name=',"con=","mat=","iter=","match=","tr=","queue=","mask="])
 
     except getopt.GetoptError:
         usage()
@@ -809,6 +811,8 @@ def main(argv):
             ics = arg
         if opt in ("--queue"):
             queue = arg
+        if opt in ("--mask"):
+            mask = arg
 
 
     fslcheck()            	  # Check to make sure fsl is installed!
@@ -841,7 +845,10 @@ def main(argv):
              usage()
              sys.exit()
         melGP = Melodic()
-        melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"],pyexec,scriptdict["melodic_hp.py"],tr)
+        try:
+            melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"],pyexec,scriptdict["melodic_hp.py"],tr,queue,mask)
+        except:
+            melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"],pyexec,scriptdict["melodic_hp.py"],tr,queue)
         print "Done submitting GICA job."
         print "Follow output at %s/gica/" %(outdir)
         print "HP Filtering will happen at end, good IC and DR image lists will be under gica/filter"

@@ -2,6 +2,8 @@
 
 # This bash script does a group ICA for use with a multisession temporal concatenation.
 
+module load fsl
+
 # USER SPECIFIED VARIABLES
 BGTHS=10	# Brain background threshold
 COMPS=30        # Number of components for GICA
@@ -9,9 +11,10 @@ COMPS=30        # Number of components for GICA
 # VARIABLES SET AT RUN TIME
 OUTPUT=$1       
 PYEXEC=$2       # Python executable to use to run filtering, will be same used to run ica+.py
-FILTERSCRIPT=$2 # Path to melodic_hp.py, should be in same directory as MRTools.py
-TR=$3
-SUBJECTS=( $4 ) # List of all subject ICA directories
+FILTERSCRIPT=$3 # Path to melodic_hp.py, should be in same directory as MRTools.py
+TR=$4
+MASK=$5
+SUBJECTS=( $6 ) # List of all subject ICA directories
 
 # make sure output directory was made by submission script.
 if [ ! -d "$OUTPUT" ]; then
@@ -147,7 +150,13 @@ done
 
 echo "inputsubs are " $inputsubs
 
-melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
+if [ $MASK="None"]; then
+    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
+else
+    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
+--bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS
+--Ostats -a concat
+fi
 
 # This is the standard melodic command - the above is customized
 # melodic -i .filelist -o groupmelodic.ica -v --nobet --bgthreshold=10 --tr=2.5 --report --guireport=../../report.html --bgimage=bg_image -d 0 --mmthresh=0.5 --Ostats -a concat
