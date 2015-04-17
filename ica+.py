@@ -107,8 +107,7 @@ class Melodic:
         self.timepoints = 0
 	self.outdir = None
 
-    def
-group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript,tr,queue="bigmem",mask=None):
+    def group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript,tr,queue="bigmem",mask=None):
         self.outdir = outdir
 	
 	# Create an output name based on date / time, if one not specified
