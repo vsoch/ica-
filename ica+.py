@@ -28,10 +28,10 @@ ALWAYS REQUIRED:
 			   gica: (group1.gica, group2.gica, group3.gica...)
 			   dr: (dr1, dr2, dr3...)
   --queue                name of slurm queue to run jobs (uses sbatch)
-  --tr=                  TR
+  --tr=                  TR (in seconds)
 
 TO RUN SINGLE SUBJECT ICA:
-   python ica+.py -o /my/experiment --ica=input.txt --queue=russpold --tr=3.0
+   python ica+.py -o /my/experiment --ica=input.txt --queue=russpold --tr=0.72
      input.txt is a three column csv file with one row per subject
      each row contains: subjectID,full/path/highres.nii.gz,full/path/functional.nii.gz
      output goes to /my/experiment/ica/sub1.ica, /my/experiment/ica/sub2.ica...
@@ -45,7 +45,7 @@ TO RUN QUALITY ANALYSIS:
      output goes to /my/experiment/qa/
 
 TO RUN GROUP ICA:
-   python ica+.py -o /my/experiment --gica=ica_dirs.txt --name=run_name
+   python ica+.py -o /my/experiment --gica=ica_dirs.txt --name=run_name --tr=0.72
      ica_dirs.txt is a single column text file listing full paths to ica directories
      you can use the *_ica.txt output file (from ica) under /my/experiment/list
      output goes to /my/experiment/gica/run_name.gica
@@ -107,7 +107,7 @@ class Melodic:
         self.timepoints = 0
 	self.outdir = None
 
-    def group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript):
+    def group(self,icadirs,gicaname,outdir,scriptinput,pyexec,filterscript,tr):
         self.outdir = outdir
 	
 	# Create an output name based on date / time, if one not specified
@@ -124,39 +124,46 @@ class Melodic:
                 if os.path.exists(line):
                     self.gica.append(line)
                 else:
-                    print "Cannot find ica directory " + line + ". Exiting."
+                    print "Cannot find ica directory %s. Exiting." %(line)
                     sys.exit()
             readdata.close
 	except:
-            print "Cannot open file " + icadirs + " . Exiting"
+            print "Cannot open file %s. Exiting" %(icadirs)
             sys.exit()
 	
 	# Create output directories, exit if the run name already exists
-	self.createGPout(outdir + "/gica")
-        gpout = outdir + "/gica/" + gicaname + ".gica"
+	self.createGPout("%s/gica" %(outdir))
+        gpout = "%s/gica/%s.gica" %(outdir,gicaname)
 	if not os.path.exists(gpout):
             self.createGPout(gpout)
             self.createGPout(gpout + "/log")	
 	else:
-            print "Run " + gpout + " already exists, and will not be overwritten."
+            print "Run %s already exists, and will not be overwritten." %(gpout)
             print "Specify a new name and re-run, or delete old run.  Exiting!"
             sys.exit()
 
 	# Prepare list of input directories into one string
 	# Also print list of data paths to file, for use with dual regression
         subinput = ''
-        gica_file = open(gpout + "/.filelist","w")
+        gica_file = open("%s/.filelist" %(gpout),"w")
         for gicapath in self.gica:
             subinput = subinput + " " + gicapath
-            gica_file.write(gicapath + "/reg_standard/filtered_func_data\n")
+            gica_file.write("%s/reg_standard/filtered_func_data\n" %(gicapath))
         gica_file.close()
 
         # Submit GICA script
-        scommand = "bsub -J " + gicaname + "_gica -M 8000000 -o " + gpout + "/log/gica.out -e " + gpout + "/log/gica.err -R \"rusage[mem=8192]\" -W 50:30 " + scriptinput + " " + gpout + " " + pyexec + " " + filterscript + " \"" + subinput + "\""
-        # R \"rusage[mem=6144]\"
-        # print scommand
-	subprocess.Popen(['%s' % scommand], shell=True, executable = "/bin/bash")
-        time.sleep(2)	
+        filey = "%s/log/ica.job" %(gpout)
+        filey = open(filey,"w")
+        filey.writelines("#!/bin/bash\n")
+        filey.writelines("#SBATCH --job-name=%s_gica\n" %(gicaname)
+        filey.writelines("#SBATCH --output=%s/log/gica.out\n" %(gpout))
+        filey.writelines("#SBATCH --error=%s/log/gica.err\n" %(gpout))
+        filey.writelines("#SBATCH --time=16:00\n")
+        filey.writelines("#SBATCH --mem=48000\n")
+        filey.writelines('%s %s %s %s %s %s"' %(scriptinput,gpout,pyexec,filterscript,tr,subinput))
+        filey.close()
+        os.system("sbatch -p bigmem --qos=bigmem %s/log/ica.job" %(queue,gpout))
+
 
     def single(self,anat,func,timepoints,outdir,script,tr,queue="normal"):
         self.outdir = outdir
@@ -834,9 +841,9 @@ def main(argv):
              usage()
              sys.exit()
         melGP = Melodic()
-        melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"],pyexec,scriptdict["melodic_hp.py"])
+        melGP.group(icadirs,runname,outdir,scriptdict["melodic_gp.sh"],pyexec,scriptdict["melodic_hp.py"],tr)
         print "Done submitting GICA job."
-        print "Follow output at " + outdir + "/gica/"
+        print "Follow output at %s/gica/" %(outdir)
         print "HP Filtering will happen at end, good IC and DR image lists will be under gica/filter"
         
     # QUALITY ANALYSIS

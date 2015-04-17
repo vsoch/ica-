@@ -5,19 +5,6 @@ https://github.com/poldrack/openfmri
 register image to whole-head MNI template and apply mask,
 then register again to brain-only template
 """
-
-
->>> os.system("fslswapdim t1 RL PA IS t12")
-0
->>> imgfile="t12.nii.gz"
->>> os.system("fslswapdim t1 LR AP SI t13")
-Cannot perform requested swap (NEUROLOGICAL/RADIOLOGICAL storage inverted)
-Try the following command instead:
-fslswapdim t1 RL AP SI t13
-256
->>> os.system("fslswapdim t1 RL AP SI t13")
-
-
 import os,sys
 
 ANTSPATH=os.environ['ANTSPATH']
@@ -54,7 +41,7 @@ def main():
     print cmd
     if not test:
         os.system(cmd)
-    
+    #HERE
     # create a version of the MNI mask aligned to subject space
     cmd='WarpImageMultiTransform 3 %s %s/%s_brain_mask.nii.gz -R %s/%s.nii.gz -i %s/%s_ANTSAffine.txt %s/%s_ANTSInverseWarp.nii.gz --use-NN'%(template_mask,subdir,image_prefix,subdir,image_prefix,subdir,image_prefix,subdir,image_prefix)
     print cmd

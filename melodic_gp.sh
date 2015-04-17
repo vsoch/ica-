@@ -3,7 +3,6 @@
 # This bash script does a group ICA for use with a multisession temporal concatenation.
 
 # USER SPECIFIED VARIABLES
-TR=2.5		# TR
 BGTHS=10	# Brain background threshold
 COMPS=30        # Number of components for GICA
 
@@ -11,7 +10,8 @@ COMPS=30        # Number of components for GICA
 OUTPUT=$1       
 PYEXEC=$2       # Python executable to use to run filtering, will be same used to run ica+.py
 FILTERSCRIPT=$2 # Path to melodic_hp.py, should be in same directory as MRTools.py
-SUBJECTS=( $3 ) # List of all subject ICA directories
+TR=$3
+SUBJECTS=( $4 ) # List of all subject ICA directories
 
 # make sure output directory was made by submission script.
 if [ ! -d "$OUTPUT" ]; then
@@ -159,9 +159,11 @@ echo "Performing highpass filtering of output networks..."
 
 mkdir -p $OUTPUT/filter
 
-echo "Command is bsub -J gica_filter -o $OUTPUT/log/filter.out -e $OUTPUT/log/filter.err $PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats "
+echo "Old command is bsub -J gica_filter -o $OUTPUT/log/filter.out -e $OUTPUT/log/filter.err $PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats "
 
 # Submit group filter script to produce files with lists of good ICA and (potential future) dual regression results
-bsub -J "gica_filter" -o $OUTPUT/log/filter.out -e $OUTPUT/log/filter.err $PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats
+
+echo "New command is $PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats"
+$PYEXEC $FILTERSCRIPT -o $OUTPUT/filter --name=gica --ts=$OUTPUT/groupmelodic.ica/report --gica=$OUTPUT/groupmelodic.ica/stats
 
 echo "Results gica_IC-hpfilter-good.txt and gica_DR-hpfilter-good.txt will be in " $OUTPUT"/filter, for use with Match functionality of ica+ package."
