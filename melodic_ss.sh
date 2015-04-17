@@ -41,16 +41,16 @@ fi
 cd $OUTPUT 
 
 # Use fslmaths to copy the raw anatomical data into the outdir
-fslmaths $ANATDATA mprage_bet
+fslmaths $ANATDATA mprage
 
 
 # ANATOMICAL PREPROCESSING
 
 # Perform BET (brain extraction) on the raw anatomical data
-#bet mprage mprage_bet -B -f 0.5 -g 0
+bet mprage mprage_bet -B -f 0.5 -g 0
 
 # Delete the raw file
-#rm mprage.nii.gz
+rm mprage.nii.gz
 
 
 
