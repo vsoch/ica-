@@ -16,6 +16,7 @@ OUTPUT=$1         # Output folder (not yet created)
 FUNCDATA=$2       # Full path to raw rest data
 ANATDATA=$3       # Full path to raw anatomical data
 TR=$4
+MASK=$5
 SCRIPTDIR=$PWD
 
 # SETUP
@@ -312,3 +313,11 @@ imcp reg_standard/standard reg_standard/bg_image
 
 # This would be the command for single subject ica - but we are doing gica
 # fsl:exec "${FSLDIR}/bin/melodic -i filtered_func_data -o filtered_func_data.ica -# v --nobet --bgthreshold=1 --tr=$fmri(tr) -d 0 --mmthresh=\"0.5\" --report --# guireport=../../report.html "
+
+# If the user has specified a mask, mask the whole brain data
+if [$MASK='None']; then
+  echo "No mask specified"
+else
+  echo "Mask $MASK found, masking data."
+  fslmaths mprage_standard -mas $MASK mprage_masked
+fi

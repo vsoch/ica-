@@ -166,7 +166,7 @@ class Melodic:
         os.system("sbatch -p %s --qos=%s %s/log/ica.job" %(queue,queue,gpout))
 
 
-    def single(self,anat,func,timepoints,outdir,script,tr,queue="normal"):
+    def single(self,anat,func,timepoints,outdir,script,tr,queue="normal",mask=None):
         self.outdir = outdir
         self.anat = anat
         self.func = func
@@ -202,7 +202,7 @@ class Melodic:
         filey.writelines("#SBATCH --error=%s/log/ica.err\n" %(ssoutdir))
         filey.writelines("#SBATCH --time=2-00:00\n")
         filey.writelines("#SBATCH --mem=64000\n")
-        filey.writelines("%s %s %s %s %s" %(scriptinput,ssoutdir,funcinput,anatinput,tr))
+        filey.writelines("%s %s %s %s %s %s" %(scriptinput,ssoutdir,funcinput,anatinput,tr,mask))
         filey.close()
         os.system("sbatch -p %s %s/log/ica.job" %(queue,ssoutdir))
         time.sleep(2) 
@@ -767,6 +767,7 @@ def main(argv):
     runname = None
     gicadir = None
     matchdrname = None
+    mask = None
 
     for opt, arg in opts:
         if opt in ("-h", "--help"):
@@ -830,7 +831,7 @@ def main(argv):
         icaRun = Setup()
         anat,func,timepoints = icaRun.ica(scans,outdir)  
         melRun = Melodic()
-        melRun.single(anat,func,timepoints,outdir,scriptdict["melodic_ss.sh"],tr,queue)
+        melRun.single(anat,func,timepoints,outdir,scriptdict["melodic_ss.sh"],tr,queue,mask)
         print "Done submitting ICA jobs."
         print "Follow output at " + outdir + "/ica/"
         print "When complete, use " + outdir + "/list/*_ica.txt for qa or gica input file."
