@@ -49,11 +49,6 @@ fslmaths $ANATDATA mprage
 # Perform BET (brain extraction) on the raw anatomical data
 bet mprage mprage_bet -B -f 0.5 -g 0
 
-# Delete the raw file
-rm mprage.nii.gz
-
-
-
 # FUNCTIONAL PREPROCESSING
 
 # take the raw functional data and use fslmaths to convert it to float
@@ -262,6 +257,9 @@ pngappend sla.png + slb.png + slc.png + sld.png + sle.png + slf.png + slg.png + 
 pngappend example_func2standard1.png - example_func2standard2.png example_func2standard.png
 
 rm -f sl?.png
+
+# We also want to apply the transformation to the raw mprage (so we have an image to apply mask to, if specified mask)
+flirt -ref standard -in mprage.nii.gz -out mprage_standard -applyxfm -init mprage_bet2standard.mat -interp trilinear -datatype float
 
 # Make reg_standard folder
 mkdir -p reg_standard
