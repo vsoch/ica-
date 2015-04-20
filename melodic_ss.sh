@@ -261,6 +261,19 @@ rm -f sl?.png
 # We also want to apply the transformation to the raw mprage (so we have an image to apply mask to, if specified mask)
 flirt -ref standard -in mprage.nii.gz -out mprage_standard -applyxfm -init mprage_bet2standard.mat -interp trilinear -datatype float
 
+slicer mprage_standard standard -s 2 -x 0.35 sla.png -x 0.45 slb.png -x 0.55 slc.png -x 0.65 sld.png -y 0.35 sle.png -y 0.45 slf.png -y 0.55 slg.png -y 0.65 slh.png -z 0.35 sli.png -z 0.45 slj.png -z 0.55 slk.png -z 0.65 sll.png 
+
+pngappend sla.png + slb.png + slc.png + sld.png + sle.png + slf.png + slg.png + slh.png + sli.png + slj.png + slk.png + sll.png mprage_standard2standard1.png
+
+slicer standard mprage_standard -s 2 -x 0.35 sla.png -x 0.45 slb.png -x 0.55 slc.png -x 0.65 sld.png -y 0.35 sle.png -y 0.45 slf.png -y 0.55 slg.png -y 0.65 slh.png -z 0.35 sli.png -z 0.45 slj.png -z 0.55 slk.png -z 0.65 sll.png 
+
+pngappend sla.png + slb.png + slc.png + sld.png + sle.png + slf.png + slg.png + slh.png + sli.png + slj.png + slk.png + sll.png mprage_standard2standard2.png 
+
+pngappend mprage_standard2standard1.png - mprage_standard2standard2.png mprage_standard2standard.png
+
+rm -f sl?.png
+
+
 # Make reg_standard folder
 mkdir -p reg_standard
 
@@ -268,11 +281,10 @@ mkdir -p reg_standard
 cp -f example_func.nii.gz reg
 
 # Delete intermediate image files
-rm -f example_func2standard1.png example_func2standard2.png example_func2mprage_bet1.png example_func2mprage_bet2.png mprage_bet2standard1.png mprage_bet2standard2.png
+rm -f example_func2standard1.png example_func2standard2.png example_func2mprage_bet1.png example_func2mprage_bet2.png mprage_bet2standard1.png mprage_bet2standard2.png mprage_standard2standard1.png mprage_standard2standard2.png
 
 # Move registration files into reg folder
 mv -f standard.nii.gz example_func2* mprage_bet2* standard2* reg 
-
 
 # FEATREGAPPPLY
 
