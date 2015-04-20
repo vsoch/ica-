@@ -176,7 +176,7 @@ class Melodic:
             if self.createSSOut(sub):
               self.printSS(sub,self.anat[sub],funcdata)
               self.runICA(sub,funcdata,self.anat[sub],script,
-                          "%s/ica/%s.ica" %(outdir,str(sub)),queue,tr)
+                          "%s/ica/%s.ica" %(outdir,str(sub)),queue,tr,mask)
               # Save the full single subject directory path to the icas list
 	      self.icas.append("%s/ica/%s.ica" %(outdir,str(sub)))
         
@@ -192,7 +192,8 @@ class Melodic:
         GPfile.writelines(self.icas[-1])
         GPfile.close()
         
-    def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr):
+    def
+runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr,mask):
         # Write job file
         filey = "%s/log/ica.job" %(ssoutdir)
         filey = open(filey,"w")
