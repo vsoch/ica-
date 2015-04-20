@@ -192,8 +192,7 @@ class Melodic:
         GPfile.writelines(self.icas[-1])
         GPfile.close()
         
-    def
-runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr,mask):
+    def runICA(self,subject,funcinput,anatinput,scriptinput,ssoutdir,queue,tr,mask):
         # Write job file
         filey = "%s/log/ica.job" %(ssoutdir)
         filey = open(filey,"w")
