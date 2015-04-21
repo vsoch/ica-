@@ -32,6 +32,8 @@ done
 mask_list=();
 bg_list=();
 
+echo "Checking timepoints..."
+
 # Higher-level MELODIC
 for ICADIR in ${SUBJECTS[@]}; do
 
@@ -145,7 +147,7 @@ cp ${FSLDIR}/etc/luts/ramp.gif .ramp.gif
 inputsubs=${SUBJECTS[0]}"/reg_standard/filtered_masked_func_data.nii.gz"
 
 for (( sstart = 1; sstart < ${#SUBJECTS[*]}; sstart++ )); do
-    inputsubs=$inputsubs","${SUBJECTS[$sstart]}"/reg_standard/filtered_func_data.nii.gz"
+    inputsubs=$inputsubs","${SUBJECTS[$sstart]}"/reg_standard/filtered_masked_func_data.nii.gz"
 done
 
 echo "inputsubs are " $inputsubs

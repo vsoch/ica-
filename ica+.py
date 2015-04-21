@@ -839,6 +839,7 @@ def main(argv):
 
     # GROUP ICA
     elif runtype is "gica":
+        print "Preparing to run GICA"
         # Make sure we have an output directory and single subject ica scan list
         try: varcheck({icadirs:"ica directory file (--gica=icadirs.txt)",outdir:"experiment output directory (-o)",runname:"name for run (--name=run_name)"})
         except:
