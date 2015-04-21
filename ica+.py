@@ -51,7 +51,7 @@ TO RUN GROUP ICA:
      output goes to /my/experiment/gica/run_name.gica
 
 TO RUN DUAL REGRESSION:
-   python ica+.py -o /my/experiment --dr=group.gica --name=dr_name --con=design.con --mat=design.mat --iter=500
+   python ica+.py -o /my/experiment --dr=group.gica --name=dr_name --con=design.con --mat=design.mat --iter=500 --queue=russpold
      (must be done after group ICA is complete)
      group.gica is the group gica directory under /my/experiment/gica/
      design.con and design.mat are created in the FSL GUI with GLM (general linear model)
@@ -387,7 +387,7 @@ class DualRegression:
 	    print "Output directory " + outdir + " already created."
 
 
-    def runDR(self,gicadir,drname,outdir,con,mat,iters,scriptinput):
+    def runDR(self,gicadir,drname,outdir,con,mat,iters,scriptinput,queue):
          if os.path.exists(outdir):
              self.outdir = outdir
              self.createGPout(outdir + "/dr")
@@ -407,7 +407,7 @@ class DualRegression:
              sys.exit()
          self.checkGICA(gicadir)
          self.checkDesign(con,mat,iters)
-         self.submitDR(scriptinput)
+         self.submitDR(scriptinput,queue)
 
     def checkGICA(self,gicadir):
         if os.path.isfile(self.outdir + "/gica/" + gicadir + "/groupmelodic.ica/melodic_IC.nii.gz"):
@@ -447,7 +447,7 @@ class DualRegression:
          self.createGPout(self.fullout)
          self.createGPout(self.fullout + "/log")
 
-    def submitDR(self,scriptinput):
+    def submitDR(self,scriptinput,queue):
         # Get list of files from group run
         gica_filelist = open(self.gicadir + "/.filelist","r")
         sublist = ''
@@ -461,10 +461,21 @@ class DualRegression:
         gica_log.write(self.gicadir)
         gica_log.close()
 
+        melodic_mix = "%s/groupmelodic.ica/melodic_IC 1" %(self.gicadir)
+
         # Submit script for dual regression
-        drcommand = "bsub -J " + self.drname + "_dr -o " + self.fullout + "/log/dr.out -e " + self.fullout + "/log/dr.err -R \"rusage[mem=8192]\" -W 99:30 " + scriptinput + " " + self.gicadir + "/groupmelodic.ica/melodic_IC 1 " + self.mat + " " + self.con + " " + str(self.iter) + " " + self.fullout + "/result " + self.gicadir
-        subprocess.Popen(['%s' % drcommand], shell=True, executable = "/bin/bash")
-        time.sleep(2)
+        filey = "%s/log/dr.job" %(self.fullout)
+        filey = open(filey,"w")
+        filey.writelines("#!/bin/bash\n")
+        filey.writelines("#SBATCH --job-name=%s_dr\n" %(self.drname))
+        filey.writelines("#SBATCH --output=%s/log/dr.out\n" %(self.fullout))
+        filey.writelines("#SBATCH --error=%s/log/dr.err\n" %(self.fullout))
+        filey.writelines("#SBATCH --time=24:00:00\n")
+        filey.writelines("#SBATCH --mem=48000\n")
+        filey.writelines('%s %s %s %s %s %s %s %s'
+%(scriptinput,self.gicadir,melodic_mix,self.mat,self.con,str(self.iter),"%s/result" %(self.fullout),self.gicadir))
+        filey.close()
+        os.system("sbatch -p %s %s/log/dr.job" %(queue,self.fullout))
         
 #----MATCH-------------------------------------------------------------------------------
 # do prep to submit pyMatch.py with user specified dual regression results and template image
@@ -870,7 +881,7 @@ def main(argv):
             usage()
             sys.exit()
         drRun = DualRegression()
-        drRun.runDR(gicadir,runname,outdir,con,mat,iters,scriptdict["melodic_dr.sh"])
+        drRun.runDR(gicadir,runname,outdir,con,mat,iters,scriptdict["melodic_dr.sh"],queue)
         print "Dual Regression job submit."
         print "Output will be in /dr/" + runname
         
