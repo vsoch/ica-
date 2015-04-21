@@ -142,7 +142,7 @@ fslmaths mask -Tmin -bin mask -odt char
 cp ${FSLDIR}/etc/luts/ramp.gif .ramp.gif
 
 # Prepare list of individual subject ica directories
-inputsubs=${SUBJECTS[0]}"/reg_standard/filtered_func_data.nii.gz"
+inputsubs=${SUBJECTS[0]}"/reg_standard/filtered_masked_func_data.nii.gz"
 
 for (( sstart = 1; sstart < ${#SUBJECTS[*]}; sstart++ )); do
     inputsubs=$inputsubs","${SUBJECTS[$sstart]}"/reg_standard/filtered_func_data.nii.gz"
