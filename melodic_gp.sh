@@ -159,7 +159,7 @@ if [ $MASK='None']; then
     melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
 else
     echo "Running group melodic with mask!"
-    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats --migp --sep_vn
+    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
     #melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
 fi
 
