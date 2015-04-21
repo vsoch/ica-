@@ -295,8 +295,8 @@ mv -f standard.nii.gz example_func2* mprage_bet2* standard2* reg
 # Create a temporary file that will be used for the output two steps down!
 TMPNAME=`tmpnam frgrot -n`
 
-# Take the standard template and apply isotropic resampling resolution (4mm)
-flirt -ref reg/standard -in reg/standard -out reg_standard/standard -applyisoxfm 4 
+# Take the standard template and apply isotropic resampling resolution (2mm)
+flirt -ref reg/standard -in reg/standard -out reg_standard/standard -applyisoxfm 2 
 
 # Now register the filtered_func_data to the standard space (with the highres anatomical as an intermediate) using the example_func2standard mat
 flirt -ref reg_standard/standard -in filtered_func_data -out $TMPNAME -applyxfm -init reg/example_func2standard.mat -interp trilinear -datatype float
