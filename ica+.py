@@ -158,7 +158,7 @@ class Melodic:
         filey.writelines("#SBATCH --job-name=%s_gica\n" %(gicaname))
         filey.writelines("#SBATCH --output=%s/log/gica.out\n" %(gpout))
         filey.writelines("#SBATCH --error=%s/log/gica.err\n" %(gpout))
-        filey.writelines("#SBATCH --time=16:00\n")
+        filey.writelines("#SBATCH --time=24:00:00\n")
         filey.writelines("#SBATCH --mem=48000\n")
         filey.writelines('%s %s %s %s %s %s "%s"'
 %(scriptinput,gpout,pyexec,filterscript,tr,mask,subinput))
