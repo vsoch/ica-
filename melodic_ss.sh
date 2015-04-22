@@ -5,7 +5,6 @@
 module load fsl
 
 # USER DEFINED VARIABLES
-HPFC=150          # highpass frequency filter cutoff
 SKERN=6.0         # Smoothing kernel (FWSE)
 BBTHRESH=10       # Brain background threshold
 LFILT=0.008       # Lower filter threshold
@@ -155,9 +154,6 @@ fslmaths prefiltered_func_data_smooth -mul $inscalefactor prefiltered_func_data_
 
 #####FSL BANDPASS METHOD  
 # Now bandpass temporal filter the intensity normalized data.
-# We need to calculate $hp_sigma_vol before continuing:
-# $HPFC is the highpass filter cutoff, and we set the second 
-# argument to -1, since we don't want lowpass filtering
 #hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
 #hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
 hp_filt=`echo "scale=6; ((1/$UFILT))" | bc`

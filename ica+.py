@@ -152,7 +152,7 @@ class Melodic:
         gica_file.close()
 
         # Submit GICA script
-        filey = "%s/log/ica.job" %(gpout)
+        filey = "%s/log/gica.job" %(gpout)
         filey = open(filey,"w")
         filey.writelines("#!/bin/bash\n")
         filey.writelines("#SBATCH --job-name=%s_gica\n" %(gicaname))
