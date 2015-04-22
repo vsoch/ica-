@@ -5,7 +5,8 @@
 module load fsl
 
 # USER DEFINED VARIABLES
-SKERN=6.0         # Smoothing kernel (FWSE)
+HPFC=100
+SKERN=5.0         # Smoothing kernel (FWSE)
 BBTHRESH=10       # Brain background threshold
 LFILT=0.008       # Lower filter threshold
 UFILT=0.1         # Upper filter threshold
@@ -154,14 +155,14 @@ fslmaths prefiltered_func_data_smooth -mul $inscalefactor prefiltered_func_data_
 
 #####FSL BANDPASS METHOD  
 # Now bandpass temporal filter the intensity normalized data.
-#hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
-#hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
-hp_filt=`echo "scale=6; ((1/$UFILT))" | bc`
-hp_sigma=`echo "scale=6; (($hp_filt/$TR))" | bc`
-lp_filt=`echo "scale=6; ((1/$LFILT))" | bc`
-lp_sigma=`echo "scale=6; (($lp_filt/$TR))" | bc`
+hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
+hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
+#hp_filt=`echo "scale=6; ((1/$UFILT))" | bc`
+#hp_sigma=`echo "scale=6; (($hp_filt/$TR))" | bc`
+#lp_filt=`echo "scale=6; ((1/$LFILT))" | bc`
+#lp_sigma=`echo "scale=6; (($lp_filt/$TR))" | bc`
 
-fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma $lp_sigma prefiltered_func_data_tempfilt
+fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma_vol -1 prefiltered_func_data_tempfilt
 
 # NOT IN USE #########################################################
 # Bandpass filter the data using matlab executable, bandpass
