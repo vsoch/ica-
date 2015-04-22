@@ -54,6 +54,7 @@ import os
 import sys
 import nibabel as nib
 import scipy
+import scitools.numpytools as scinu
 import numpy as np
 import operator
 import getopt
@@ -110,7 +111,7 @@ class Data:
 
 # READ AFFINE TRANSFORMATION MATRIX
     def readAff(self):
-        self.aff = self.img.get_affine()
+        self.aff = scinu.mat(self.img.get_affine())
     
 
 # Read raw image data
@@ -202,7 +203,7 @@ class Data:
         # Create coordinate space based on x,y,z dimensions, and multiply by affine matrix
         # Examples shown if xdim = 3, ydim=4, zdim=5
         # Create R row variable [1 2 3 1 2 3...] ydim * zdim times
-        Rrow = list(np.seq(1,self.xdim)) * (self.ydim*self.zdim)
+        Rrow = list(scinu.seq(1,self.xdim)) * (self.ydim*self.zdim)
 
         # Create C row variable [1 1 1 2 2 2 3 3 3 4 4 4 1 1 1 2 2 2...] zdim X
         Crow = []
@@ -212,7 +213,7 @@ class Data:
         Crow = Crow * self.zdim
 	
         # Create P row variable [ each of 1:zdim xdim*ydim times ]
-        Prow = []
+        row = []
         for z in range(1,self.zdim+1):
             holder = ([z] * self.xdim*self.ydim)
             for i in holder:
@@ -225,7 +226,7 @@ class Data:
         self.RCP = np.vstack((Rrow,Crow,Prow,onedim))
 
         # Make it into a matrix
-        self.RCP = np.mat(self.RCP)
+        self.RCP = scinu.mat(self.RCP)
 
         # Grab the first three rows of the affine transformation matrix (4th is for time)
         affXYZ = self.aff[0:3]

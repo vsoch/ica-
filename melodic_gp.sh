@@ -13,7 +13,7 @@ OUTPUT=$1
 PYEXEC=$2       # Python executable to use to run filtering, will be same used to run ica+.py
 FILTERSCRIPT=$3 # Path to melodic_hp.py, should be in same directory as MRTools.py
 TR=$4
-MASK=$5
+ROIMASK=$5
 SUBJECTS=( $6 ) # List of all subject ICA directories
 
 # make sure output directory was made by submission script.
@@ -144,22 +144,29 @@ fslmaths mask -Tmin -bin mask -odt char
 cp ${FSLDIR}/etc/luts/ramp.gif .ramp.gif
 
 # Prepare list of individual subject ica directories
-inputsubs=${SUBJECTS[0]}"/reg_standard/filtered_masked_func_data.nii.gz"
+inputsubs=${SUBJECTS[0]}"/reg_standard/filtered_func_data.nii.gz"
 
 for (( sstart = 1; sstart < ${#SUBJECTS[*]}; sstart++ )); do
-    inputsubs=$inputsubs","${SUBJECTS[$sstart]}"/reg_standard/filtered_masked_func_data.nii.gz"
+    inputsubs=$inputsubs","${SUBJECTS[$sstart]}"/reg_standard/filtered_func_data.nii.gz"
 done
 
 echo "inputsubs are " $inputsubs
 
-echo $MASK
-
-if [ $MASK='None']; then
+if [ $ROIMASK='None']; then
+    echo "COMMAND IS:"
+    echo "melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
+--bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS
+--Ostats -a concat" 
     echo "Running group melodic with no mask!"
     melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
 else
     echo "Running group melodic with mask!"
-    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
+    echo "COMMAND IS:"
+    echo "melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
+--bgthreshold=$BGTHS --tr=$TR --report --mask=$ROIMASK --bgimage=$OUTPUT/bg_image
+-d $COMPS --Ostats -a concat"
+    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
+--bgthreshold=$BGTHS --tr=$TR --report --mask=$ROIMASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
     #melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
 fi
 

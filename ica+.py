@@ -158,12 +158,12 @@ class Melodic:
         filey.writelines("#SBATCH --job-name=%s_gica\n" %(gicaname))
         filey.writelines("#SBATCH --output=%s/log/gica.out\n" %(gpout))
         filey.writelines("#SBATCH --error=%s/log/gica.err\n" %(gpout))
-        filey.writelines("#SBATCH --time=24:00:00\n")
+        filey.writelines("#SBATCH --time=23:0:0\n")
         filey.writelines("#SBATCH --mem=48000\n")
         filey.writelines('%s %s %s %s %s %s "%s"'
 %(scriptinput,gpout,pyexec,filterscript,tr,mask,subinput))
         filey.close()
-        os.system("sbatch -p %s --qos=%s %s/log/ica.job" %(queue,queue,gpout))
+        os.system("sbatch -p %s %s/log/gica.job" %(queue,gpout))
 
 
     def single(self,anat,func,timepoints,outdir,script,tr,queue="normal",mask=None):
