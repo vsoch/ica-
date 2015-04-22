@@ -63,7 +63,7 @@ middle_slice=`echo "(($func_slices/2))" | bc`
 fslroi prefiltered_func_data example_func $middle_slice 1
 
 # run MCFLIRT motion correction on the prefiltered_functional_data
-mcflirt -in prefiltered_func_data -out prefiltered_func_data_mcf -mats -plots -refvol $middle_slice -rmsrel -rmsabs
+mcflirt -in prefiltered_func_data -out prefiltered_func_data_mcf -mats -plots -refvol $middle_slice -rmsrel -rmsabs -spline_final
 
 # make mc directory and copy new mcflirt files into it
 mkdir -pv mc
@@ -96,6 +96,9 @@ fslmaths prefiltered_func_data_mcf -mas mask prefiltered_func_data_bet
 # Use fslstats to output the 2nd and 98th percentile
 lowerp=`fslstats prefiltered_func_data_bet -p 2`
 upperp=`fslstats prefiltered_func_data_bet -p 98`
+echo "upperp is $upperp"
+echo "lowerp is $lowerp"
+
 # The brain/background threshold (to distinguish between brain and background is 10% - so we divide by 10)
 # Anything above this value, then, is activation between the 2nd and 98th percentile that is likely to be 
 # brain activation and not noise or something else!
@@ -104,11 +107,13 @@ thresholdp=`echo "scale=6; ($upperp-$lowerp)/$BBTHRESH" | bc`
 # Use fslmaths to threshold the brain extracted data based on the highpass filter above
 # use "mask" as a binary mask, and Tmin to specify we want the minimum across time
 fslmaths prefiltered_func_data_bet -thr $thresholdp -Tmin -bin mask -odt char
+echo "Threshold p is $thresholdp [~496]"
 
 # Take the motion corrected functional data, and using "mask" as a mask (the -k option)
 # output the 50th percentile (the mean?)
 # We will need this later to calculate the intensity scaling factor
 meanintensity=`fslstats prefiltered_func_data_mcf -k mask -p 50`
+echo "Mean intensity is $meanintensity [~3847]"
 
 # difF is a spatial filtering option that specifies maximum filtering of all voxels
 # I don't completely understand why we would filter one image with itself...
@@ -131,9 +136,11 @@ fslmaths prefiltered_func_data_thresh -Tmean mean_func
 uppert=`echo "scale=6; (($upperp-$lowerp))" | bc`
 difft=`echo "scale=8; (($uppert-$thresholdp))" | bc`
 
+echo "difft is $difft [~2885]"
 # We also need to calculate the spatial size based on the smoothing.
 # FWHM = 2.355*spatial size. So if desired FWHM = 6mm, spatial size = 2.54...
 ssize=`echo "scale=11; (($SKERN/2.355))" | bc`
+echo "ssize is $ssize [~2.12]"
 # susan uses nonlinear filtering to reduce noise 
 # by only averaging a voxel with local voxels which have similar intensity
 susan prefiltered_func_data_thresh $difft $ssize 3 1 1 mean_func $difft prefiltered_func_data_smooth
@@ -149,9 +156,12 @@ fslmaths prefiltered_func_data_smooth -mas mask prefiltered_func_data_smooth
 # We now need to calculate the intensity scaling factor applied to the whole  4D dataset so that it's mean is 10000
 inscalefactor=`echo "scale=6; ((10000/$meanintensity))" | bc`
 
+echo "inscalefactor is $inscalefactor [~2.59]"
 # We now multiply the smoothed data by the intensity scaling factor to get
 # the intensity normalized data
 fslmaths prefiltered_func_data_smooth -mul $inscalefactor prefiltered_func_data_intnorm
+
+fslmaths prefiltered_func_data_intnorm -Tmean tempMean
 
 #####FSL BANDPASS METHOD  
 # Now bandpass temporal filter the intensity normalized data.
@@ -162,7 +172,11 @@ hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
 #lp_filt=`echo "scale=6; ((1/$LFILT))" | bc`
 #lp_sigma=`echo "scale=6; (($lp_filt/$TR))" | bc`
 
-fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma_vol -1 prefiltered_func_data_tempfilt
+echo "hpsigmavol is $hp_sigma_vol [~16.6]"
+
+fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma_vol -1 -add tempMean prefiltered_func_data_tempfilt
+
+imrm tempMean
 
 # NOT IN USE #########################################################
 # Bandpass filter the data using matlab executable, bandpass
