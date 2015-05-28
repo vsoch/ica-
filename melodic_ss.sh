@@ -326,6 +326,12 @@ fslmaths reg_standard/filtered_func_data -Tstd -bin reg_standard/mask -odt char
 # Copy the standard to use as the background image
 imcp reg_standard/standard reg_standard/bg_image
 
+if [$MASK='None']; then
+    melodic --Oorig --Ostats -i reg_standard/filtered_func_data -o "filtered_func_data.ica" --report --tr=$TR -v
+else
+  echo "Mask $MASK found, masking data."
+    melodic --Oorig --Ostats -i reg_standard/filtered_func_data -o "filtered_func_data.ica" --report --tr=$TR -v --mask=$MASK
+fi
 # This would be the command for single subject ica - but we are doing gica
 # fsl:exec "${FSLDIR}/bin/melodic -i filtered_func_data -o filtered_func_data.ica -# v --nobet --bgthreshold=1 --tr=$fmri(tr) -d 0 --mmthresh=\"0.5\" --report --# guireport=../../report.html "
 
