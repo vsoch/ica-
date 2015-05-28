@@ -726,7 +726,7 @@ def fslcheck():
 # Finds .sh scripts to run jobs and remembers full path
 def scriptcheck():
     scriptdict = {}
-    for scriptname in ("melodic_ss.sh","melodic_gp.sh","melodic_dr.sh","melodic_qa.py","run_Bandpass.sh","Bandpass","AIMTemp.py","MRtools.py","pyMatch.py","melodic_hp.py"):
+    for scriptname in ("melodic_ss.sh","melodic_gp.sh","melodic_dr.sh","melodic_qa.py","AIMTemp.py","MRtools.py","pyMatch.py","melodic_hp.py"):
         if os.path.isfile(scriptname):
 	    scriptdict[scriptname] = os.path.abspath(scriptname)
         else:

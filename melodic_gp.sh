@@ -154,19 +154,14 @@ echo "inputsubs are " $inputsubs
 
 if [ $ROIMASK='None']; then
     echo "COMMAND IS:"
-    echo "melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
---bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS
---Ostats -a concat" 
+    echo "melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat" 
     echo "Running group melodic with no mask!"
     melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
 else
     echo "Running group melodic with mask!"
     echo "COMMAND IS:"
-    echo "melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
---bgthreshold=$BGTHS --tr=$TR --report --mask=$ROIMASK --bgimage=$OUTPUT/bg_image
--d $COMPS --Ostats -a concat"
-    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet
---bgthreshold=$BGTHS --tr=$TR --report --mask=$ROIMASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
+    echo "melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$ROIMASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat"
+    melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$ROIMASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
     #melodic -i $inputsubs -o $OUTPUT/groupmelodic.ica -v --nobet --bgthreshold=$BGTHS --tr=$TR --report --mask=$MASK --bgimage=$OUTPUT/bg_image -d $COMPS --Ostats -a concat
 fi
 

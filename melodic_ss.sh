@@ -3,6 +3,8 @@
 # This bash script does an Individual ICA for use with a multisession temporal concatenation. It takes the data through the application of the registration, to be ready for group ICA.
 
 module load fsl
+module load spm/12b
+module load matlab
 
 # USER DEFINED VARIABLES
 HPFC=100
@@ -10,6 +12,7 @@ SKERN=5.0         # Smoothing kernel (FWSE)
 BBTHRESH=10       # Brain background threshold
 LFILT=0.008       # Lower filter threshold
 UFILT=0.1         # Upper filter threshold
+MATLABRUNTIME=/share/sw/licensed/MATLAB-R2014a
 
 # VARIABLES DEFINED AT RUNTIME
 OUTPUT=$1         # Output folder (not yet created)
@@ -163,31 +166,26 @@ fslmaths prefiltered_func_data_smooth -mul $inscalefactor prefiltered_func_data_
 
 fslmaths prefiltered_func_data_intnorm -Tmean tempMean
 
-#####FSL BANDPASS METHOD  
-# Now bandpass temporal filter the intensity normalized data.
-hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
-hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
-#hp_filt=`echo "scale=6; ((1/$UFILT))" | bc`
-#hp_sigma=`echo "scale=6; (($hp_filt/$TR))" | bc`
-#lp_filt=`echo "scale=6; ((1/$LFILT))" | bc`
-#lp_sigma=`echo "scale=6; (($lp_filt/$TR))" | bc`
-
-echo "hpsigmavol is $hp_sigma_vol [~16.6]"
+#####FSL HIGHPASS METHOD (not in use, for task data) 
+#hp_sigma_sec=`echo "scale=6; (($HPFC/2.0))" | bc`
+#hp_sigma_vol=`echo "scale=6; (($hp_sigma_sec/$TR))" | bc`
+#echo "hpsigmavol is $hp_sigma_vol [~16.6]"
 
 fslmaths prefiltered_func_data_intnorm -bptf $hp_sigma_vol -1 -add tempMean prefiltered_func_data_tempfilt
 
 imrm tempMean
 
-# NOT IN USE #########################################################
 # Bandpass filter the data using matlab executable, bandpass
 # First convert the .nii.gz to .nii
-#fslchfiletype NIFTI prefiltered_func_data_intnorm.nii.gz
+fslchfiletype NIFTI prefiltered_func_data_intnorm.nii.gz
 
 # If matlab bandpass desired
-# Launch matlab script (<scriptname> <matlabruntime> <input .nii> <name for output .nii (no extension)> <TR> <lower filter> <upper filter>
-# $SCRIPTDIR/run_Bandpass.sh $MATLABRUNTIME prefiltered_func_data_intnorm.nii prefiltered_func_data_tempfilt $TR $LFILT $UFILT
+# Launch matlab script (<scriptname> <matlabruntime> <input .nii> <name for output .nii (no extension)>
+# TR is unfortunately embedded in the script because of number conversion errors!
+# Filter is for 0.008 to 0.1 Hz
+$SCRIPTDIR/bandpass/run_BandpassTR$TR.sh $MATLABRUNTIME prefiltered_func_data_intnorm.nii prefiltered_func_data_tempfilt.nii
 # The output will be .nii, which we need to change back to .nii.gz
-#fslchfiletype NIFTI_GZ prefiltered_func_data_tempfilt.nii
+fslchfiletype NIFTI_GZ prefiltered_func_data_tempfilt.nii
 ######################################################################
 
 # Use fslmaths to copy the file with a new name (filtered_func_data)
@@ -311,7 +309,7 @@ mv -f standard.nii.gz example_func2* mprage_bet2* standard2* reg
 TMPNAME=`tmpnam frgrot -n`
 
 # Take the standard template and apply isotropic resampling resolution (2mm)
-flirt -ref reg/standard -in reg/standard -out reg_standard/standard -applyisoxfm 2 
+flirt -ref reg/standard -in reg/standard -out reg_standard/standard -applyisoxfm 4
 
 # Now register the filtered_func_data to the standard space (with the highres anatomical as an intermediate) using the example_func2standard mat
 flirt -ref reg_standard/standard -in filtered_func_data -out $TMPNAME -applyxfm -init reg/example_func2standard.mat -interp trilinear -datatype float
